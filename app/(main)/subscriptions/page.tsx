@@ -211,12 +211,13 @@ const SubscriptionCard = ({
           startContent={
             <div className="flex items-center gap-2">
               <Chip
-                color={statusColorMap[subscription.status] as any}
+                color={statusColorMap[subscription.status]}
                 variant="flat"
                 size="sm"
               >
                 {subscription.status}
               </Chip>
+
             </div>
           }
           title={
@@ -271,7 +272,7 @@ const SubscriptionCard = ({
               <div>
                 <p className="text-gray-500">Status</p>
                 <Chip
-                  color={statusColorMap[subscription.status] as any}
+                  color={statusColorMap[subscription.status]}
                   variant="flat"
                   size="sm"
                 >
