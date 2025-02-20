@@ -321,7 +321,7 @@ export default function EmailPage() {
                     <div className="text-sm text-gray-500 p-2 bg-gray-50 rounded-lg">
                         <p>Available variables:</p>
                         <ul className="list-disc list-inside mt-1">
-                            <li>{"{{name}}"} - Recipient's name</li>
+                            <li>{"{{name}}"} - Recipient&apos;s name</li>
                             {selectedTab === "businesses" && (
                                 <>
                                     <li>{"{{businessName}}"} - Business name</li>

@@ -172,7 +172,7 @@ function RecentActivity({ recentChanges }: { recentChanges?: { business: { name:
       {recentChanges.map((change, index) => (
         <div key={index} className="flex justify-between items-center text-sm">
           <span className="text-gray-600">{change.business.name}</span>
-          <Chip color={statusColorMap[change.status] as any} variant="flat" size="sm">
+          <Chip color={statusColorMap[change.status] as "primary" | "success" | "danger" | "warning"} variant="flat" size="sm">
             {change.status}
           </Chip>
         </div>
