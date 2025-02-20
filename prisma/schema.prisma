@@ -1,0 +1,238 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id                  String               @id @default(cuid())
+  name                String?
+  email               String               @unique
+  password            String
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  emailVerified       DateTime?
+  verificationToken   String?              @unique
+  isAdmin             Boolean              @default(false)
+  ownedBusinesses     Business[]           @relation("BusinessOwner")
+  passwordResetTokens PasswordResetToken[]
+  managedBusinesses   Business[]           @relation("BusinessManager")
+}
+
+model Business {
+  id                 String            @id @default(cuid())
+  name               String
+  takealotApi        String?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  ownerId            String
+  paystackCustomerId String?           @unique
+  paystackEmail      String?
+  owner              User              @relation("BusinessOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  Feedback           Feedback[]
+  monitoredOffers    LocalOffer[]
+  payments           Payment[]
+  priceAdjustments   PriceAdjustment[]
+  subscription       Subscription?
+  offerDTOs          OfferDTO[]
+  managers           User[]            @relation("BusinessManager")
+
+  @@index([ownerId])
+}
+
+model LaunchSignup {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Subscription {
+  id                       String             @id @default(cuid())
+  businessId               String             @unique
+  planId                   String
+  startDate                DateTime
+  endDate                  DateTime?
+  cancelledAt              DateTime?
+  createdAt                DateTime           @default(now())
+  updatedAt                DateTime           @updatedAt
+  paystackCustomerCode     String
+  paystackSubscriptionCode String             @unique
+  lastPaymentDate          DateTime?
+  nextBillingDate          DateTime?
+  status                   SubscriptionStatus @default(TRIAL)
+  trialEndsAt              DateTime?
+  payStackEmailToken       String?            @unique
+  business                 Business           @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  plan                     Plan               @relation(fields: [planId], references: [id])
+}
+
+model Payment {
+  id          String        @id @default(cuid())
+  businessId  String
+  amount      Float
+  currency    String
+  status      PaymentStatus
+  paymentDate DateTime
+  payStackRef String        @unique
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  business    Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
+}
+
+model OfferDTO {
+  id                   String            @id @default(cuid())
+  tsinId               Int               @map("tsin_id")
+  imageUrl             String            @map("image_url")
+  offerUrl             String            @map("offer_url")
+  sku                  String
+  barcode              String
+  productLabelNumber   String            @map("product_label_number")
+  sellingPrice         Float             @map("selling_price")
+  rrp                  Float
+  leadtimeDays         Int               @map("leadtime_days")
+  leadtimeStock        Json              @map("leadtime_stock")
+  status               String
+  title                String
+  stockAtTakealot      Json              @map("stock_at_takealot")
+  stockOnWay           Json              @map("stock_on_way")
+  totalStockOnWay      Int               @map("total_stock_on_way")
+  stockCover           Json              @map("stock_cover")
+  totalStockCover      Int               @map("total_stock_cover")
+  salesUnits           Json              @map("sales_units")
+  stockAtTakealotTotal Int               @map("stock_at_takealot_total")
+  dateCreated          DateTime          @map("date_created")
+  storageFeeEligible   Boolean           @map("storage_fee_eligible")
+  discount             String?
+  discountShown        Boolean           @map("discount_shown")
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+  offerId              Int               @map("offer_id")
+  businessId           String
+  inBuyBox             Boolean           @default(false)
+  localOffer           LocalOffer?       @relation("OfferDTOLocalOffer")
+  PriceAdjustment      PriceAdjustment[]
+  business             Business          @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@unique([offerId, businessId])
+  @@index([businessId])
+  @@index([offerId])
+  @@map("offers")
+}
+
+model LocalOffer {
+  id                   String    @id @default(cuid())
+  isMonitored          Boolean   @default(true)
+  minPrice             Float?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  offerDtoId           Int
+  businessId           String
+  lastMonitored        DateTime?
+  nextMonitoring       DateTime?
+  receiveNotifications Boolean   @default(false)
+  minPriceAlertSent    Boolean   @default(false)
+  Business             Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  offerDto             OfferDTO  @relation("OfferDTOLocalOffer", fields: [offerDtoId, businessId], references: [offerId, businessId], onDelete: Cascade)
+
+  @@unique([offerDtoId, businessId])
+  @@index([businessId])
+  @@index([offerDtoId])
+}
+
+model Plan {
+  id                  String         @id @default(cuid())
+  name                String         @unique
+  maxOffers           Int
+  price               Float
+  freeTrialDays       Int            @default(14)
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+  maxManagers         Int
+  monitoringFrequency Int
+  payStackPlanId      String?        @unique
+  subscriptions       Subscription[]
+}
+
+model Job {
+  id         String    @id @default(cuid())
+  businessId String
+  createdAt  DateTime  @default(now())
+  type       JobType
+  retries    Int       @default(0)
+  status     JobStatus @default(PENDING)
+  updatedAt  DateTime  @updatedAt
+  lockedAt   DateTime?
+
+  @@index([status, lockedAt])
+}
+
+model Feedback {
+  id         String   @id @default(cuid())
+  businessId String
+  category   String
+  message    String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model PriceAdjustment {
+  id           Int      @id @default(autoincrement())
+  offerId      Int
+  businessId   String
+  price        Float
+  createdAt    DateTime @default(now())
+  success      Boolean  @default(true)
+  errorMessage String?
+  business     Business @relation(fields: [businessId], references: [id])
+  offer        OfferDTO @relation(fields: [offerId, businessId], references: [offerId, businessId])
+
+  @@index([businessId])
+  @@index([offerId, businessId])
+  @@index([createdAt])
+}
+
+enum SubscriptionStatus {
+  TRIAL
+  ACTIVE
+  CANCELLED
+  PAST_DUE
+  EXPIRED
+  PENDING
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESSFUL
+  FAILED
+}
+
+enum JobType {
+  buyBox
+  sync
+}
+
+enum JobStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}

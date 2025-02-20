@@ -3,19 +3,139 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --foreground-rgb: 0, 0, 0;
+  --background-start-rgb: 214, 219, 220;
+  --background-end-rgb: 255, 255, 255;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --foreground-rgb: 255, 255, 255;
+    --background-start-rgb: 0, 0, 0;
+    --background-end-rgb: 0, 0, 0;
+  }
+}
+
+@layer base {
+  html {
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
   }
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@layer components {
+  .icon {
+    @apply h-6 w-6 text-default-400 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200;
+  }
+
+  /* Headings */
+  h1, .h1 {
+    @apply text-5xl font-semibold leading-snug;
+  }
+  h1.bold, .h1.bold {
+    @apply font-bold;
+  }
+
+  h2, .h2 {
+    @apply text-3xl font-semibold leading-relaxed;
+  }
+  h2.bold, .h2.bold {
+    @apply font-bold;
+  }
+
+  h3, .h3 {
+    @apply text-xl font-medium leading-relaxed tracking-tight;
+  }
+  h3.bold, .h3.bold {
+    @apply font-bold;
+  }
+
+  /* Paragraphs */
+  p, .p {
+    @apply text-lg leading-relaxed;
+  }
+  p.bold, .p.bold {
+    @apply font-bold;
+  }
+
+  /* Additional typography elements */
+  a {
+    @apply text-blue-600 underline;
+  }
+  a:hover {
+    @apply text-blue-800;
+  }
+  a:focus {
+    @apply outline-none ring-2 ring-blue-500;
+  }
+
+  blockquote {
+    @apply text-xl italic border-l-4 border-gray-300 pl-4 py-2 my-4;
+  }
+
+  ul, ol {
+    @apply list-inside my-4;
+  }
+  ul {
+    @apply list-disc;
+  }
+  ol {
+    @apply list-decimal;
+  }
+
+  code {
+    @apply font-mono bg-gray-100 rounded px-1;
+  }
+
+  pre {
+    @apply font-mono bg-gray-100 p-4 rounded my-4 overflow-x-auto;
+  }
+
+  /* Accessibility improvements */
+  body {
+    @apply text-base leading-normal text-gray-900;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  }
+
+  /* Improve color contrast for better readability */
+  .text-muted {
+    @apply text-gray-600;
+  }
+
+  /* Ensure sufficient line height for readability */
+  * {
+    @apply leading-normal;
+  }
+
+  /* Add focus styles for keyboard navigation */
+  *:focus {
+    @apply outline-none ring-2 ring-blue-500;
+  }
+
+  /* Responsive font sizes */
+  @screen sm {
+    h1, .h1 { @apply text-4xl; }
+    h2, .h2 { @apply text-2xl; }
+    h3, .h3 { @apply text-lg; }
+    p, .p { @apply text-base; }
+  }
+
+  /* High contrast mode support */
+  @media (prefers-contrast: high) {
+    body {
+      @apply text-black bg-white;
+    }
+    a {
+      @apply text-blue-800 underline;
+    }
+  }
+}
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
 }
