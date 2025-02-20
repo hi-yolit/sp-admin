@@ -1,13 +1,9 @@
-// app/api/businesses/[businessId]/adjust-offers/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/authOptions';
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { businessId: string } }
-) {
+export async function POST(request: NextRequest, context: { params: { businessId: string } }) {
   try {
     const session = await getServerSession(authOptions);
     
@@ -15,7 +11,7 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { businessId } = params;
+    const { businessId } = context.params; // ✅ Correct way to access params
     const { maxOffers } = await request.json();
 
     // Get all monitored offers for the business, ordered by createdAt
