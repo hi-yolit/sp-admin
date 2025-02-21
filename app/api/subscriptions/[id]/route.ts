@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/authOptions';
-import { SubscriptionStatus } from '@prisma/client';
+import { SubscriptionStatus, Prisma } from '@prisma/client';
 
 export async function PATCH(request: NextRequest) {
   try {
@@ -14,7 +14,7 @@ export async function PATCH(request: NextRequest) {
 
     // Extract and validate ID
     const url = new URL(request.url);
-    const id = url.pathname.split('/').pop(); // Get the last segment
+    const id = url.pathname.split('/').pop();
 
     if (!id) {
       return NextResponse.json({ error: 'Subscription ID is required' }, { status: 400 });
@@ -54,8 +54,8 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    // Prepare update data
-    const updateData: any = {
+    // Prepare update data with proper typing
+    const updateData: Prisma.SubscriptionUpdateInput = {
       status: status as SubscriptionStatus,
     };
 
@@ -66,7 +66,9 @@ export async function PATCH(request: NextRequest) {
 
     // Only include planId if provided
     if (planId) {
-      updateData.planId = planId;
+      updateData.plan = {
+        connect: { id: planId }
+      };
     }
 
     const updatedSubscription = await prisma.subscription.update({
