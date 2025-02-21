@@ -12,30 +12,66 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Extract ID from the request URL
+    // Extract and validate ID
     const url = new URL(request.url);
-    const id = url.pathname.split('/')[4]; // Adjust index based on route depth
+    const id = url.pathname.split('/').pop(); // Get the last segment
 
     if (!id) {
       return NextResponse.json({ error: 'Subscription ID is required' }, { status: 400 });
     }
 
-    const { status, nextBillingDate } = await request.json();
+    // Log the incoming request data
+    const body = await request.json();
+    console.log('Request body:', body);
+    const { status, nextBillingDate, planId } = body;
 
-    // Validate status
+    // Validate required fields
+    if (!status) {
+      return NextResponse.json({ error: 'Status is required' }, { status: 400 });
+    }
+
+    // Validate status enum
     if (!Object.values(SubscriptionStatus).includes(status)) {
       return NextResponse.json(
-        { error: 'Invalid subscription status' },
+        { 
+          error: 'Invalid subscription status',
+          validStatuses: Object.values(SubscriptionStatus),
+          receivedStatus: status
+        },
         { status: 400 }
       );
     }
 
+    // Verify subscription exists
+    const existingSubscription = await prisma.subscription.findUnique({
+      where: { id },
+    });
+
+    if (!existingSubscription) {
+      return NextResponse.json(
+        { error: `Subscription not found with ID: ${id}` },
+        { status: 404 }
+      );
+    }
+
+    // Prepare update data
+    const updateData: any = {
+      status: status as SubscriptionStatus,
+    };
+
+    // Only include nextBillingDate if provided
+    if (nextBillingDate) {
+      updateData.nextBillingDate = new Date(nextBillingDate);
+    }
+
+    // Only include planId if provided
+    if (planId) {
+      updateData.planId = planId;
+    }
+
     const updatedSubscription = await prisma.subscription.update({
       where: { id },
-      data: {
-        status: status as SubscriptionStatus,
-        nextBillingDate: nextBillingDate ? new Date(nextBillingDate) : null,
-      },
+      data: updateData,
       include: {
         business: {
           select: {
@@ -45,6 +81,9 @@ export async function PATCH(request: NextRequest) {
         plan: {
           select: {
             name: true,
+            id: true,
+            maxOffers: true,
+            price: true,
           },
         },
       },
@@ -54,7 +93,10 @@ export async function PATCH(request: NextRequest) {
   } catch (error) {
     console.error('Subscription update error:', error);
     return NextResponse.json(
-      { error: 'Failed to update subscription' },
+      { 
+        error: 'Failed to update subscription',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     );
   }
