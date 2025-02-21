@@ -71,14 +71,6 @@ export default function AdminNavbar() {
               Send Emails
             </DropdownItem>
             <DropdownItem
-              key="settings"
-              startContent={<Settings size={16} />}
-              as={Link}
-              href="/settings"
-            >
-              Settings
-            </DropdownItem>
-            <DropdownItem
               key="logout"
               color="danger"
               startContent={<LogOut size={16} />}

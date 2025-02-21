@@ -203,25 +203,30 @@ const SubscriptionCard = ({
   onEdit: (subscription: Subscription) => void;
 }) => {
   const getDateDisplay = () => {
+    const now = new Date();
+    const trialEnd = subscription.trialEndsAt ? new Date(subscription.trialEndsAt) : null;
+    const nextBilling = subscription.nextBillingDate ? new Date(subscription.nextBillingDate) : null;
+
+    // Active trial
     if (subscription.status === 'TRIAL') {
-      if (!subscription?.trialEndsAt) {
-        return 'Trial end date unavailable';
-      }
-      return `Trial ends: ${format(new Date(subscription.trialEndsAt), 'MMM d, yyyy h:mm a')}`;
+      return `Trial ends: ${format(trialEnd!, 'MMM d, yyyy h:mm a')}`;
     }
 
-    if (subscription.status === 'EXPIRED' && subscription.trialEndsAt) {
-      return `Trial ended: ${format(new Date(subscription.trialEndsAt), 'MMM d, yyyy h:mm a')}`;
+    // Check if it was a trial that expired
+    if (subscription.status === 'EXPIRED' && trialEnd && trialEnd < now && (!nextBilling || nextBilling > now)) {
+      return `Trial ended: ${format(trialEnd, 'MMM d, yyyy h:mm a')}`;
     }
 
+    // Regular subscription (expired or active)
     if (subscription.status === 'EXPIRED') {
-      return subscription.nextBillingDate
-        ? `Last billing: ${format(new Date(subscription.nextBillingDate), 'MMM d, yyyy h:mm a')}`
+      return nextBilling
+        ? `Last billing: ${format(nextBilling, 'MMM d, yyyy h:mm a')}`
         : 'Last billing date unavailable';
     }
 
-    return subscription.nextBillingDate
-      ? `Next billing: ${format(new Date(subscription.nextBillingDate), 'MMM d, yyyy h:mm a')}`
+    // Active subscription
+    return nextBilling
+      ? `Next billing: ${format(nextBilling, 'MMM d, yyyy h:mm a')}`
       : 'N/A';
   };
 
