@@ -1,8 +1,4 @@
 
-import { ArrowLeftIcon } from "@heroicons/react/24/outline";
-import { Link } from "@nextui-org/react";
-
-
 export default function AuthLayout({
   children,
 }: Readonly<{
