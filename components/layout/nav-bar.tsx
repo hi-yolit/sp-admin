@@ -13,7 +13,7 @@ import {
   DropdownItem,
   Avatar,
 } from "@nextui-org/react";
-import { LogOut, Settings, CreditCard, Home, Mail } from "lucide-react";
+import { LogOut, CreditCard, Home, Mail } from "lucide-react";
 
 export default function AdminNavbar() {
   const { data: session } = useSession();
@@ -37,7 +37,7 @@ export default function AdminNavbar() {
               as="button"
               className="transition-transform"
               size="sm"
-              name={session?.user?.name || 'Admin'}
+              name={session?.user?.name ?? 'Admin'}
               showFallback
             />
           </DropdownTrigger>
