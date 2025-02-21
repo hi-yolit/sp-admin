@@ -202,6 +202,29 @@ const SubscriptionCard = ({
   subscription: Subscription;
   onEdit: (subscription: Subscription) => void;
 }) => {
+  const getDateDisplay = () => {
+    if (subscription.status === 'TRIAL') {
+      if (!subscription?.trialEndsAt) {
+        return 'Trial end date unavailable';
+      }
+      return `Trial ends: ${format(new Date(subscription.trialEndsAt), 'MMM d, yyyy h:mm a')}`;
+    }
+
+    if (subscription.status === 'EXPIRED' && subscription.trialEndsAt) {
+      return `Trial ended: ${format(new Date(subscription.trialEndsAt), 'MMM d, yyyy h:mm a')}`;
+    }
+
+    if (subscription.status === 'EXPIRED') {
+      return subscription.nextBillingDate
+        ? `Last billing: ${format(new Date(subscription.nextBillingDate), 'MMM d, yyyy h:mm a')}`
+        : 'Last billing date unavailable';
+    }
+
+    return subscription.nextBillingDate
+      ? `Next billing: ${format(new Date(subscription.nextBillingDate), 'MMM d, yyyy h:mm a')}`
+      : 'N/A';
+  };
+
   return (
     <Card className="mb-4">
       <Accordion>
@@ -217,7 +240,6 @@ const SubscriptionCard = ({
               >
                 {subscription.status}
               </Chip>
-
             </div>
           }
           title={
@@ -228,15 +250,7 @@ const SubscriptionCard = ({
           }
           subtitle={
             <span className="text-xs text-gray-500">
-              {subscription.status === 'TRIAL' ? (
-                subscription?.trialEndsAt
-                  ? `Trial ends: ${format(new Date(subscription.trialEndsAt), 'MMM d, yyyy h:mm a')}`
-                  : 'Trial end date unavailable'
-              ) : (
-                subscription.nextBillingDate
-                  ? `Next billing: ${format(new Date(subscription.nextBillingDate), 'MMM d, yyyy h:mm a')}`
-                  : 'N/A'
-              )}
+              {getDateDisplay()}
             </span>
           }
           indicator={<ChevronDown className="w-4 h-4" />}
@@ -250,16 +264,18 @@ const SubscriptionCard = ({
                 </p>
               </div>
               <div>
-                <p className="text-gray-500">Next Billing</p>
+                <p className="text-gray-500">
+                  {subscription.status === 'EXPIRED' ? 'Last Billing' : 'Next Billing'}
+                </p>
                 <p className="font-medium">
                   {subscription.nextBillingDate
                     ? format(new Date(subscription.nextBillingDate), 'MMM d, yyyy h:mm a')
                     : 'N/A'}
                 </p>
               </div>
-              {subscription.status === 'TRIAL' && subscription.trialEndsAt && (
+              {subscription.trialEndsAt && (
                 <div>
-                  <p className="text-gray-500">Trial Ends</p>
+                  <p className="text-gray-500">Trial {subscription.status === 'TRIAL' ? 'Ends' : 'Ended'}</p>
                   <p className="font-medium">
                     {format(new Date(subscription.trialEndsAt), 'MMM d, yyyy h:mm a')}
                   </p>
