@@ -19,10 +19,7 @@ class EmailService {
     this.log(`Sending custom email to ${to}`);
     const msg = {
       to,
-      from: {
-        email: 'hi@salespath.co.za',
-        name: 'Siyanda from SalesPath'
-      },
+      from: 'Siyanda from SalesPath <hi@salespath.co.za>',
       subject,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f4f4f4; padding: 20px;">
