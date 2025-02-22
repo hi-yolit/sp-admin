@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
             for (const user of users) {
                 const businessNames = user.ownedBusinesses.map(b => b.name).join(', ');
                 const personalizedBody = body
-                    .replace(/{{name}}/g, user.name || 'there')
+                    .replace(/{{name}}/g, user.name ?? 'there')
                     .replace(/{{businessNames}}/g, businessNames || 'your business');
 
                 await emailService.sendCustomEmail(
@@ -51,6 +51,12 @@ export async function POST(request: NextRequest) {
             });
 
             for (const business of businesses) {
+                
+                const personalizedSubject = subject
+                    .replace(/{{name}}/g, business.owner.name ?? 'there')
+                    .replace(/{{businessName}}/g, business.name)
+                    .replace(/{{status}}/g, business.subscription?.status ?? 'no subscription');
+
                 const personalizedBody = body
                     .replace(/{{name}}/g, business.owner.name ?? 'there')
                     .replace(/{{businessName}}/g, business.name)
@@ -58,7 +64,7 @@ export async function POST(request: NextRequest) {
 
                 await emailService.sendCustomEmail(
                     business.owner.email,
-                    subject,
+                    personalizedSubject,
                     personalizedBody
                 );
             }
