@@ -5,25 +5,22 @@ import { authOptions } from '@/lib/authOptions';
 import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 
-// PATCH — Update Business
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
   try {
     const session = await getServerSession(authOptions);
-
     if (!session?.user?.isAdmin) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
-    const businessId = params.id;
+    const businessId = context.params.id;
     const { name, ownerEmail } = await request.json();
 
     if (!name?.trim()) {
       return NextResponse.json({ error: 'Business name is required' }, { status: 400 });
     }
-
     if (!ownerEmail?.trim()) {
       return NextResponse.json({ error: 'Owner email is required' }, { status: 400 });
     }
@@ -32,7 +29,6 @@ export async function PATCH(
       where: { id: businessId },
       include: { owner: { select: { id: true, email: true } } }
     });
-
     if (!existingBusiness) {
       return NextResponse.json({ error: 'Business not found' }, { status: 404 });
     }
@@ -53,10 +49,7 @@ export async function PATCH(
 
     const updatedBusiness = await prisma.business.update({
       where: { id: businessId },
-      data: {
-        name: name.trim(),
-        ownerId
-      },
+      data: { name: name.trim(), ownerId },
       include: {
         owner: { select: { id: true, name: true, email: true } },
         subscription: { include: { plan: true } }
@@ -80,27 +73,21 @@ export async function PATCH(
         { status: 400 }
       );
     }
-
-    return NextResponse.json(
-      { error: 'Failed to update business' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to update business' }, { status: 500 });
   }
 }
 
-// DELETE — Delete Business
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
   try {
     const session = await getServerSession(authOptions);
-
     if (!session?.user?.isAdmin) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
-    const businessId = params.id;
+    const businessId = context.params.id;
     const existingBusiness = await prisma.business.findUnique({
       where: { id: businessId },
       include: {
@@ -115,7 +102,6 @@ export async function DELETE(
         }
       }
     });
-
     if (!existingBusiness) {
       return NextResponse.json({ error: 'Business not found' }, { status: 404 });
     }
@@ -139,27 +125,21 @@ export async function DELETE(
         { status: 400 }
       );
     }
-
-    return NextResponse.json(
-      { error: 'Failed to delete business' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to delete business' }, { status: 500 });
   }
 }
 
-// GET — Get Single Business
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
   try {
     const session = await getServerSession(authOptions);
-
     if (!session?.user?.isAdmin) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
-    const businessId = params.id;
+    const businessId = context.params.id;
     const business = await prisma.business.findUnique({
       where: { id: businessId },
       include: {
@@ -176,18 +156,14 @@ export async function GET(
         }
       }
     });
-
     if (!business) {
       return NextResponse.json({ error: 'Business not found' }, { status: 404 });
     }
 
     return NextResponse.json(business);
 
-  } catch (error: unknown) {
+  } catch (error) {
     console.error('Error fetching business:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch business' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to fetch business' }, { status: 500 });
   }
 }
