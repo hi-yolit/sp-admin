@@ -108,7 +108,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 }
 
 // DELETE - Delete Business
-export async function DELETE(request: NextRequest, { params }: RouteParams) {
+export async function DELETE({ params }: RouteParams) {
   try {
     const session = await getServerSession(authOptions);
     
