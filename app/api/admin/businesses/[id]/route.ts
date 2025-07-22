@@ -4,14 +4,8 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/authOptions';
 import prisma from '@/lib/prisma';
 
-interface RouteParams {
-  params: {
-    id: string;
-  };
-}
-
 // PATCH - Update Business
-export async function PATCH(request: NextRequest, { params }: RouteParams) {
+export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const session = await getServerSession(authOptions);
     
@@ -89,11 +83,11 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       business: updatedBusiness
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error updating business:', error);
     
     // Handle Prisma unique constraint errors
-    if (error && typeof error === 'object' && 'code' in error && error.code === 'P2002') {
+    if (error.code === 'P2002') {
       return NextResponse.json(
         { error: 'A business with this name already exists for this owner' },
         { status: 400 }
@@ -108,7 +102,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 }
 
 // DELETE - Delete Business
-export async function DELETE({ params }: RouteParams) {
+export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const session = await getServerSession(authOptions);
     
@@ -155,11 +149,11 @@ export async function DELETE({ params }: RouteParams) {
       deletedCounts: existingBusiness._count
     });
 
-  } catch (error) {
+  } catch (error : any) {
     console.error('Error deleting business:', error);
     
     // Handle foreign key constraint errors
-    if (error && typeof error === 'object' && 'code' in error && error.code === 'P2003') {
+    if (error.code === 'P2003') {
       return NextResponse.json(
         { error: 'Cannot delete business due to existing references. Please contact support.' },
         { status: 400 }
@@ -174,7 +168,7 @@ export async function DELETE({ params }: RouteParams) {
 }
 
 // GET - Get Single Business (optional, for future use)
-export async function GET(request: NextRequest, { params }: RouteParams) {
+export async function GET(request: NextRequest, { params }: { params: { id: string } }){
   try {
     const session = await getServerSession(authOptions);
     
