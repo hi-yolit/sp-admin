@@ -24,7 +24,7 @@ import {
   DropdownMenu,
   DropdownItem
 } from "@nextui-org/react";
-import { Search, Building2, Eye, ShoppingCart, DollarSign, ChevronDown, AlertTriangle, MoreVertical, Edit, Trash2, User } from 'lucide-react';
+import { Search, Building2, Eye, ShoppingCart, DollarSign, ChevronDown, AlertTriangle, MoreVertical, Edit, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface BusinessMonitoring {
@@ -473,7 +473,7 @@ export default function BusinessMonitoringPage() {
   };
 
   const filterAndSortBusinesses = () => {
-    let filtered = businesses.filter(business => {
+    const filtered = businesses.filter(business => {
       // Search filter
       const matchesSearch = business.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                            business.owner.email.toLowerCase().includes(searchQuery.toLowerCase());

@@ -89,11 +89,11 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       business: updatedBusiness
     });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error updating business:', error);
     
     // Handle Prisma unique constraint errors
-    if (error.code === 'P2002') {
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'P2002') {
       return NextResponse.json(
         { error: 'A business with this name already exists for this owner' },
         { status: 400 }
@@ -155,11 +155,11 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       deletedCounts: existingBusiness._count
     });
 
-  } catch (error : any) {
+  } catch (error) {
     console.error('Error deleting business:', error);
     
     // Handle foreign key constraint errors
-    if (error.code === 'P2003') {
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'P2003') {
       return NextResponse.json(
         { error: 'Cannot delete business due to existing references. Please contact support.' },
         { status: 400 }

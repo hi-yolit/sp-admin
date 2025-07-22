@@ -131,28 +131,30 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(businessesWithStats);
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error fetching business monitoring data:', error);
     
     // Handle specific Prisma errors
-    if (error.code === 'P1001') {
-      return NextResponse.json(
-        { 
-          error: 'Cannot reach database server. Please check your connection.',
-          type: 'connection_error'
-        },
-        { status: 503 }
-      );
-    }
+    if (error && typeof error === 'object' && 'code' in error) {
+      if (error.code === 'P1001') {
+        return NextResponse.json(
+          { 
+            error: 'Cannot reach database server. Please check your connection.',
+            type: 'connection_error'
+          },
+          { status: 503 }
+        );
+      }
 
-    if (error.code === 'P1008') {
-      return NextResponse.json(
-        { 
-          error: 'Database operation timed out. Please try again.',
-          type: 'timeout_error'
-        },
-        { status: 504 }
-      );
+      if (error.code === 'P1008') {
+        return NextResponse.json(
+          { 
+            error: 'Database operation timed out. Please try again.',
+            type: 'timeout_error'
+          },
+          { status: 504 }
+        );
+      }
     }
 
     return NextResponse.json(
