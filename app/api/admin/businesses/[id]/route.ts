@@ -1,13 +1,18 @@
 // app/api/admin/businesses/[id]/route.ts
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/authOptions';
 import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 
+type Context = {
+  params: { id: string }
+}
+
+// PATCH — update
 export async function PATCH(
-  request: NextRequest,
-  context: { params: { id: string } }
+  request: Request,
+  { params }: Context
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -15,7 +20,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
-    const businessId = context.params.id;
+    const businessId = params.id;
     const { name, ownerEmail } = await request.json();
 
     if (!name?.trim()) {
@@ -25,16 +30,16 @@ export async function PATCH(
       return NextResponse.json({ error: 'Owner email is required' }, { status: 400 });
     }
 
-    const existingBusiness = await prisma.business.findUnique({
+    const existing = await prisma.business.findUnique({
       where: { id: businessId },
       include: { owner: { select: { id: true, email: true } } }
     });
-    if (!existingBusiness) {
+    if (!existing) {
       return NextResponse.json({ error: 'Business not found' }, { status: 404 });
     }
 
-    let ownerId = existingBusiness.ownerId;
-    if (ownerEmail.toLowerCase() !== existingBusiness.owner.email.toLowerCase()) {
+    let ownerId = existing.ownerId;
+    if (ownerEmail.toLowerCase() !== existing.owner.email.toLowerCase()) {
       const newOwner = await prisma.user.findUnique({
         where: { email: ownerEmail.toLowerCase() }
       });
@@ -47,7 +52,7 @@ export async function PATCH(
       ownerId = newOwner.id;
     }
 
-    const updatedBusiness = await prisma.business.update({
+    const updated = await prisma.business.update({
       where: { id: businessId },
       data: { name: name.trim(), ownerId },
       include: {
@@ -56,10 +61,7 @@ export async function PATCH(
       }
     });
 
-    return NextResponse.json({
-      message: 'Business updated successfully',
-      business: updatedBusiness
-    });
+    return NextResponse.json({ message: 'Business updated successfully', business: updated });
 
   } catch (error: unknown) {
     console.error('Error updating business:', error);
@@ -77,9 +79,10 @@ export async function PATCH(
   }
 }
 
+// DELETE — remove
 export async function DELETE(
-  request: NextRequest,
-  context: { params: { id: string } }
+  request: Request,
+  { params }: Context
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -87,8 +90,8 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
-    const businessId = context.params.id;
-    const existingBusiness = await prisma.business.findUnique({
+    const businessId = params.id;
+    const existing = await prisma.business.findUnique({
       where: { id: businessId },
       include: {
         _count: {
@@ -102,7 +105,7 @@ export async function DELETE(
         }
       }
     });
-    if (!existingBusiness) {
+    if (!existing) {
       return NextResponse.json({ error: 'Business not found' }, { status: 404 });
     }
 
@@ -110,7 +113,7 @@ export async function DELETE(
 
     return NextResponse.json({
       message: 'Business deleted successfully',
-      deletedCounts: existingBusiness._count
+      deletedCounts: existing._count
     });
 
   } catch (error: unknown) {
@@ -129,9 +132,10 @@ export async function DELETE(
   }
 }
 
+// GET — fetch one
 export async function GET(
-  request: NextRequest,
-  context: { params: { id: string } }
+  request: Request,
+  { params }: Context
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -139,7 +143,7 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
-    const businessId = context.params.id;
+    const businessId = params.id;
     const business = await prisma.business.findUnique({
       where: { id: businessId },
       include: {
