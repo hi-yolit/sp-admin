@@ -13,7 +13,7 @@ import {
   DropdownItem,
   Avatar,
 } from "@nextui-org/react";
-import { LogOut, CreditCard, Home, Mail } from "lucide-react";
+import { LogOut, CreditCard, Home, Mail, BarChart3 } from "lucide-react";
 
 export default function AdminNavbar() {
   const { data: session } = useSession();
@@ -53,6 +53,14 @@ export default function AdminNavbar() {
               href="/"
             >
               Dashboard
+            </DropdownItem>
+            <DropdownItem
+              key="business-monitoring"
+              startContent={<BarChart3 size={16} />}
+              as={Link}
+              href="/businesses/monitoring"
+            >
+              Business Monitoring
             </DropdownItem>
             <DropdownItem
               key="subscriptions"
