@@ -58,7 +58,7 @@ export default function AdminNavbar() {
               key="business-monitoring"
               startContent={<BarChart3 size={16} />}
               as={Link}
-              href="/businesses/monitoring"
+              href="/monitoring"
             >
               Business Monitoring
             </DropdownItem>
