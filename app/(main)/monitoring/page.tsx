@@ -599,14 +599,20 @@ export default function BusinessMonitoringPage() {
     activelyMonitoring: businesses.filter(b => b.monitoringStats.totalMonitored > 0).length,
     totalOffersMonitored: businesses.reduce((sum, b) => sum + b.monitoringStats.totalMonitored, 0),
     totalInBuyBox: businesses.reduce((sum, b) => sum + b.monitoringStats.inBuyBox, 0),
-    averageBuyBoxRate: businesses.length > 0 
-      ? (businesses.reduce((sum, b) => {
-          return sum + (b.monitoringStats.totalMonitored > 0 
-            ? (b.monitoringStats.inBuyBox / b.monitoringStats.totalMonitored) * 100 
-            : 0);
-        }, 0) / businesses.filter(b => b.monitoringStats.totalMonitored > 0).length)
-      : 0
   };
+
+    const activeBusinesses = businesses.filter(b => b.subscription?.status === 'ACTIVE' || b.subscription?.status === 'TRIAL');
+
+
+  const buyBoxSum = activeBusinesses.reduce((sum, b) => {
+    const { totalMonitored, inBuyBox } = b.monitoringStats;
+    const rate = totalMonitored > 0 ? (inBuyBox / totalMonitored) * 100 : 0;
+    return sum + rate;
+  }, 0);
+
+  const averageBuyBoxRate = activeBusinesses.length > 0
+    ? buyBoxSum / activeBusinesses.length
+    : 0;
 
   if (loading) {
     return (
@@ -698,7 +704,7 @@ export default function BusinessMonitoringPage() {
             <div>
               <p className="text-sm text-gray-600">Avg Buy Box Rate</p>
               <p className="text-xl font-semibold">
-                {summaryStats.averageBuyBoxRate.toFixed(1)}%
+                {averageBuyBoxRate.toFixed(1)}%
               </p>
             </div>
           </div>
