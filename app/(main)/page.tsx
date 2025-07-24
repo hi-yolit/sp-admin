@@ -4,19 +4,8 @@ import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { type JSX, useEffect, useState } from "react"
 import { format } from "date-fns"
-import { Card, Chip, CardHeader, CardBody } from "@nextui-org/react"
-import {
-  Users,
-  Eye,
-  Building2,
-  Activity,
-  TrendingUp,
-  ShoppingCart,
-  Database,
-  Clock,
-  CheckCircle,
-  AlertCircle,
-} from "lucide-react"
+import { Card, Chip } from "@nextui-org/react"
+import { Users, Eye, Building2, Activity, Database, Clock, AlertCircle } from "lucide-react"
 
 interface DashboardStats {
   userCount: number
@@ -104,8 +93,6 @@ export default function Home() {
     return null
   }
 
-  const monitoringRate = stats?.totalOfferCount ? (stats.actuallyMonitoredOfferCount / stats.totalOfferCount) * 100 : 0
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       <main className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
@@ -123,7 +110,7 @@ export default function Home() {
         </div>
 
         {/* Key Metrics */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <MetricCard
             icon={<Users className="h-6 w-6 text-blue-600" />}
             title="Total Users"
@@ -143,7 +130,6 @@ export default function Home() {
             icon={<Activity className="h-6 w-6 text-purple-600" />}
             title="Actively Monitoring"
             value={stats?.activelyMonitoringBusinessCount}
-            subtitle={`${stats?.activeSubscriptions} with active subs`}
             bgColor="bg-gradient-to-br from-purple-50 to-purple-100"
             iconBg="bg-purple-100"
           />
@@ -157,93 +143,28 @@ export default function Home() {
           />
         </div>
 
-        {/* Secondary Metrics */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
-          <Card className="p-6 shadow-sm border-0 bg-white/80 backdrop-blur-sm">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center">
-                <TrendingUp className="w-6 h-6 text-indigo-600" />
-              </div>
-              <span className="text-xs font-medium text-indigo-600 uppercase tracking-wide">Performance</span>
-            </div>
-            <p className="text-2xl font-bold text-gray-900 mb-1">{monitoringRate.toFixed(1)}%</p>
-            <p className="text-sm text-gray-600">Monitoring Rate</p>
-            <div className="mt-3 w-full bg-gray-200 rounded-full h-2">
-              <div
-                className="bg-gradient-to-r from-indigo-500 to-indigo-600 h-2 rounded-full transition-all duration-300"
-                style={{ width: `${Math.min(monitoringRate, 100)}%` }}
-              ></div>
-            </div>
-          </Card>
-
-          <Card className="p-6 shadow-sm border-0 bg-white/80 backdrop-blur-sm">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center">
-                <ShoppingCart className="w-6 h-6 text-emerald-600" />
-              </div>
-              <span className="text-xs font-medium text-emerald-600 uppercase tracking-wide">Business</span>
-            </div>
-            <p className="text-2xl font-bold text-gray-900 mb-1">{stats?.trialBusinessCount || 0}</p>
-            <p className="text-sm text-gray-600">Trial Businesses</p>
-          </Card>
-
-          <Card className="p-6 shadow-sm border-0 bg-white/80 backdrop-blur-sm">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
-                <AlertCircle className="w-6 h-6 text-red-600" />
-              </div>
-              <span className="text-xs font-medium text-red-600 uppercase tracking-wide">Inactive</span>
-            </div>
-            <p className="text-2xl font-bold text-gray-900 mb-1">{stats?.inactiveBusinessCount || 0}</p>
-            <p className="text-sm text-gray-600">Inactive Businesses</p>
-          </Card>
-        </div>
-
         {/* Dashboard Sections */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Business Overview */}
-          <Card className="shadow-sm border-0 bg-white/80 backdrop-blur-sm">
-            <CardHeader className="pb-3">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <Building2 className="w-5 h-5 text-blue-600" />
-                </div>
-                <h2 className="text-lg font-semibold text-gray-900">Business Overview</h2>
-              </div>
-            </CardHeader>
-            <CardBody className="pt-0">
-              <BusinessStats stats={stats} />
-            </CardBody>
-          </Card>
-
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* System Health */}
-          <Card className="shadow-sm border-0 bg-white/80 backdrop-blur-sm">
-            <CardHeader className="pb-3">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                  <Database className="w-5 h-5 text-green-600" />
-                </div>
-                <h2 className="text-lg font-semibold text-gray-900">System Health</h2>
+          <Card className="p-6 shadow-sm border-0 bg-white/80 backdrop-blur-sm">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                <Database className="w-5 h-5 text-green-600" />
               </div>
-            </CardHeader>
-            <CardBody className="pt-0">
-              <SystemStatus health={health} />
-            </CardBody>
+              <h2 className="text-lg font-semibold text-gray-900">System Health</h2>
+            </div>
+            <SystemStatus health={health} />
           </Card>
 
           {/* Recent Activity */}
-          <Card className="shadow-sm border-0 bg-white/80 backdrop-blur-sm">
-            <CardHeader className="pb-3">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                  <Clock className="w-5 h-5 text-purple-600" />
-                </div>
-                <h2 className="text-lg font-semibold text-gray-900">Recent Activity</h2>
+          <Card className="p-6 shadow-sm border-0 bg-white/80 backdrop-blur-sm">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                <Clock className="w-5 h-5 text-purple-600" />
               </div>
-            </CardHeader>
-            <CardBody className="pt-0">
-              <RecentActivity recentChanges={stats?.recentSubscriptionChanges} />
-            </CardBody>
+              <h2 className="text-lg font-semibold text-gray-900">Recent Activity</h2>
+            </div>
+            <RecentActivity recentChanges={stats?.recentSubscriptionChanges} />
           </Card>
         </div>
 
@@ -261,54 +182,23 @@ export default function Home() {
   )
 }
 
-// Component for business statistics
-function BusinessStats({ stats }: { stats: DashboardStats | null }) {
-  return (
-    <div className="space-y-4">
-      <StatRow
-        label="Total Businesses"
-        value={stats?.totalBusinessCount}
-        icon={<Building2 className="w-4 h-4 text-gray-500" />}
-      />
-      <StatRow
-        label="Active Subscriptions"
-        value={stats?.activeSubscriptions}
-        color="text-green-600"
-        icon={<CheckCircle className="w-4 h-4 text-green-500" />}
-      />
-      <StatRow
-        label="Currently Monitoring"
-        value={stats?.activelyMonitoringBusinessCount}
-        color="text-blue-600"
-        icon={<Eye className="w-4 h-4 text-blue-500" />}
-      />
-      <StatRow
-        label="Expired/Cancelled"
-        value={stats?.inactiveBusinessCount}
-        color="text-red-600"
-        icon={<AlertCircle className="w-4 h-4 text-red-500" />}
-      />
-    </div>
-  )
-}
-
 // Component for system status
 function SystemStatus({ health }: { health: SystemHealth | null }) {
   const isConnected = health?.database === "connected"
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+      <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
         <div className="flex items-center gap-3">
           <div className={`w-3 h-3 rounded-full ${isConnected ? "bg-green-500" : "bg-red-500"}`}></div>
-          <span className="text-sm font-medium text-gray-700">Database</span>
+          <span className="text-sm font-medium text-gray-700">Database Connection</span>
         </div>
         <Chip color={isConnected ? "success" : "danger"} variant="flat" size="sm" className="font-medium">
           {isConnected ? "Connected" : "Disconnected"}
         </Chip>
       </div>
 
-      <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+      <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
         <div className="flex items-center gap-3">
           <Clock className="w-4 h-4 text-gray-500" />
           <span className="text-sm font-medium text-gray-700">Last Update</span>
@@ -379,29 +269,5 @@ function MetricCard({
       <p className="text-sm text-gray-600">{title}</p>
       {subtitle && <p className="text-xs text-gray-500 mt-2">{subtitle}</p>}
     </Card>
-  )
-}
-
-function StatRow({
-  label,
-  value,
-  color = "text-gray-600",
-  icon,
-}: {
-  label: string
-  value?: number | string
-  color?: string
-  icon?: JSX.Element
-}) {
-  return (
-    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-      <div className="flex items-center gap-3">
-        {icon}
-        <span className="text-sm font-medium text-gray-700">{label}</span>
-      </div>
-      <span className={`font-semibold ${color}`}>
-        {value !== undefined ? (typeof value === "number" ? value.toLocaleString() : value) : "Loading..."}
-      </span>
-    </div>
   )
 }

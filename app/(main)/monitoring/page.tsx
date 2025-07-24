@@ -7,10 +7,6 @@ import {
   Chip,
   Select,
   SelectItem,
-  Accordion,
-  AccordionItem,
-  CardBody,
-  Progress,
   Button,
   Modal,
   ModalContent,
@@ -29,15 +25,15 @@ import {
   Eye,
   ShoppingCart,
   DollarSign,
-  ChevronDown,
   AlertTriangle,
   MoreVertical,
   Edit,
   Trash2,
   TrendingUp,
   Activity,
-  Users,
   Filter,
+  Mail,
+  Calendar,
 } from "lucide-react"
 import { format } from "date-fns"
 
@@ -130,10 +126,6 @@ const EditBusinessModal = ({ isOpen, onClose, business, onUpdate }: EditBusiness
               onChange={(e) => setName(e.target.value)}
               placeholder="Enter business name"
               variant="bordered"
-              classNames={{
-                input: "text-sm",
-                label: "text-sm font-medium",
-              }}
             />
             <Input
               label="Owner Email"
@@ -142,15 +134,10 @@ const EditBusinessModal = ({ isOpen, onClose, business, onUpdate }: EditBusiness
               onChange={(e) => setOwnerEmail(e.target.value)}
               placeholder="Enter owner email"
               variant="bordered"
-              classNames={{
-                input: "text-sm",
-                label: "text-sm font-medium",
-              }}
             />
             <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl">
               <p className="text-sm text-blue-800">
-                <strong>Note:</strong> Changing the owner email will transfer the business to that user account. Make
-                sure the email exists in the system.
+                <strong>Note:</strong> Changing the owner email will transfer the business to that user account.
               </p>
             </div>
           </div>
@@ -164,7 +151,6 @@ const EditBusinessModal = ({ isOpen, onClose, business, onUpdate }: EditBusiness
             onPress={handleSubmit}
             isLoading={isLoading}
             isDisabled={!name.trim() || !ownerEmail.trim()}
-            className="font-medium"
           >
             Update Business
           </Button>
@@ -220,27 +206,17 @@ const DeleteBusinessModal = ({ isOpen, onClose, business, onDelete }: DeleteBusi
                 <AlertTriangle className="w-5 h-5" />
                 This action cannot be undone!
               </h4>
-              <p className="text-red-700 text-sm mb-3">Deleting this business will permanently remove:</p>
-              <ul className="list-disc list-inside text-red-700 text-sm space-y-1 ml-2">
-                <li>All monitored offers ({business?.monitoringStats.totalMonitored || 0} offers)</li>
-                <li>All price adjustments</li>
-                <li>Subscription data</li>
-                <li>Payment history</li>
-                <li>All associated data</li>
-              </ul>
+              <p className="text-red-700 text-sm mb-3">Deleting this business will permanently remove all data.</p>
             </div>
             <div>
               <p className="text-sm text-gray-600 mb-3">
-                To confirm deletion, type the business name: <strong className="text-gray-900">{business?.name}</strong>
+                Type <strong>{business?.name}</strong> to confirm:
               </p>
               <Input
                 placeholder={`Type "${business?.name}" to confirm`}
                 value={confirmText}
                 onChange={(e) => setConfirmText(e.target.value)}
                 variant="bordered"
-                classNames={{
-                  input: "text-sm",
-                }}
               />
             </div>
           </div>
@@ -249,13 +225,7 @@ const DeleteBusinessModal = ({ isOpen, onClose, business, onDelete }: DeleteBusi
           <Button color="default" variant="light" onPress={onClose}>
             Cancel
           </Button>
-          <Button
-            color="danger"
-            onPress={handleDelete}
-            isLoading={isLoading}
-            isDisabled={!isDeleteEnabled}
-            className="font-medium"
-          >
+          <Button color="danger" onPress={handleDelete} isLoading={isLoading} isDisabled={!isDeleteEnabled}>
             Delete Business
           </Button>
         </ModalFooter>
@@ -275,228 +245,118 @@ const BusinessCard = ({
 }) => {
   const stats = business.monitoringStats
   const subscription = business.subscription
-  const utilizationColor = stats.planUtilization >= 90 ? "danger" : stats.planUtilization >= 70 ? "warning" : "success"
-
   const isActivelyMonitored = subscription && ["ACTIVE", "TRIAL"].includes(subscription.status)
   const buyBoxRate = stats.totalMonitored > 0 ? (stats.inBuyBox / stats.totalMonitored) * 100 : 0
 
   return (
-    <Card className="shadow-sm border-0 bg-white/80 backdrop-blur-sm">
-      <div className="flex items-start justify-between p-1">
-        <div className="flex-1">
-          <Accordion variant="light" className="px-0">
-            <AccordionItem
-              key={business.id}
-              aria-label={`Business monitoring for ${business.name}`}
-              startContent={
-                <div className="flex flex-wrap items-center gap-2">
-                  {subscription && (
-                    <Chip
-                      color={subscriptionStatusColors[subscription.status]}
-                      variant="flat"
-                      size="sm"
-                      className="font-medium"
-                    >
-                      {subscription.status}
-                    </Chip>
-                  )}
-                  {!isActivelyMonitored && (
-                    <Chip color="warning" variant="flat" size="sm" className="font-medium">
-                      INACTIVE
-                    </Chip>
-                  )}
-                  {stats.planUtilization >= 90 && isActivelyMonitored && (
-                    <Chip color="danger" variant="flat" size="sm" startContent={<AlertTriangle className="w-3 h-3" />}>
-                      HIGH USAGE
-                    </Chip>
-                  )}
-                </div>
-              }
-              title={
-                <div className="flex flex-col gap-1">
-                  <span className="text-lg font-semibold text-gray-900">{business.name}</span>
-                  <div className="flex items-center gap-2 text-sm text-gray-500">
-                    <Users className="w-4 h-4" />
-                    <span>{business.owner.name || business.owner.email}</span>
-                  </div>
-                </div>
-              }
-              subtitle={
-                <div className="flex flex-wrap gap-3 text-sm text-gray-600 mt-2">
-                  <div className="flex items-center gap-1">
-                    <Eye className="w-4 h-4" />
-                    <span>{stats.totalMonitored} offers</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <ShoppingCart className="w-4 h-4" />
-                    <span>{stats.inBuyBox} in buy box</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <TrendingUp className="w-4 h-4" />
-                    <span>{buyBoxRate.toFixed(1)}% success</span>
-                  </div>
-                </div>
-              }
-              indicator={<ChevronDown className="w-5 h-5 text-gray-400" />}
-              classNames={{
-                trigger: "py-4",
-                title: "text-left",
-                subtitle: "text-left",
-              }}
+    <Card className="p-6 shadow-sm border-0 bg-white/80 backdrop-blur-sm hover:shadow-md transition-shadow">
+      <div className="flex items-start justify-between mb-4">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-3 mb-2">
+            <h3 className="text-lg font-semibold text-gray-900 truncate">{business.name}</h3>
+            <Chip
+              color={subscriptionStatusColors[subscription?.status || "default"]}
+              variant="flat"
+              size="sm"
+              className="font-medium"
             >
-              <CardBody className="px-0 py-6">
-                {/* Status Alert */}
-                {!isActivelyMonitored && stats.totalMonitored > 0 && (
-                  <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl">
-                    <div className="flex items-center gap-2 mb-2">
-                      <AlertTriangle className="w-5 h-5 text-amber-600" />
-                      <span className="font-semibold text-amber-800">Monitoring Inactive</span>
-                    </div>
-                    <p className="text-sm text-amber-700">
-                      Subscription is {subscription?.status || "missing"}. Offers are not being actively monitored.
-                    </p>
-                  </div>
-                )}
-
-                {/* Key Metrics */}
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                  <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-xl border border-blue-200">
-                    <div className="flex items-center justify-between mb-2">
-                      <Eye className="w-5 h-5 text-blue-600" />
-                      <span className="text-xs font-medium text-blue-600 uppercase tracking-wide">Monitored</span>
-                    </div>
-                    <p className="text-2xl font-bold text-blue-700">{stats.totalMonitored}</p>
-                  </div>
-
-                  <div className="bg-gradient-to-br from-green-50 to-green-100 p-4 rounded-xl border border-green-200">
-                    <div className="flex items-center justify-between mb-2">
-                      <ShoppingCart className="w-5 h-5 text-green-600" />
-                      <span className="text-xs font-medium text-green-600 uppercase tracking-wide">Buy Box</span>
-                    </div>
-                    <p className="text-2xl font-bold text-green-700">{stats.inBuyBox}</p>
-                  </div>
-
-                  <div className="bg-gradient-to-br from-red-50 to-red-100 p-4 rounded-xl border border-red-200">
-                    <div className="flex items-center justify-between mb-2">
-                      <ShoppingCart className="w-5 h-5 text-red-600" />
-                      <span className="text-xs font-medium text-red-600 uppercase tracking-wide">Not in Box</span>
-                    </div>
-                    <p className="text-2xl font-bold text-red-700">{stats.notInBuyBox}</p>
-                  </div>
-
-                  <div className="bg-gradient-to-br from-amber-50 to-amber-100 p-4 rounded-xl border border-amber-200">
-                    <div className="flex items-center justify-between mb-2">
-                      <DollarSign className="w-5 h-5 text-amber-600" />
-                      <span className="text-xs font-medium text-amber-600 uppercase tracking-wide">Min Price</span>
-                    </div>
-                    <p className="text-2xl font-bold text-amber-700">{stats.reachedMinPrice}</p>
-                  </div>
-                </div>
-
-                {/* Plan Utilization */}
-                {isActivelyMonitored && (
-                  <div className="mb-6 p-4 bg-gray-50 rounded-xl border border-gray-200">
-                    <div className="flex justify-between items-center mb-3">
-                      <span className="font-semibold text-gray-900">Plan Utilization</span>
-                      <span className="text-sm text-gray-600">
-                        {stats.totalMonitored + stats.reachedMinPrice} / {subscription?.plan.maxOffers || "Unlimited"}
-                      </span>
-                    </div>
-                    <Progress
-                      value={stats.planUtilization}
-                      color={utilizationColor}
-                      size="md"
-                      className="mb-2"
-                      classNames={{
-                        track: "bg-gray-200",
-                        indicator: "bg-gradient-to-r",
-                      }}
-                    />
-                    <p className="text-sm text-gray-600">
-                      {stats.planUtilization.toFixed(1)}% of {subscription?.plan.name || "plan"} limit used
-                    </p>
-                  </div>
-                )}
-
-                {/* Business Details */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-gray-50 rounded-xl border border-gray-200">
-                  <div className="space-y-4">
-                    <div>
-                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Owner Email</p>
-                      <p className="text-sm font-medium text-gray-900">{business.owner.email}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Plan</p>
-                      <p className="text-sm font-medium text-gray-900">
-                        {subscription?.plan.name || "No subscription"}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="space-y-4">
-                    <div>
-                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Created</p>
-                      <p className="text-sm font-medium text-gray-900">
-                        {format(new Date(business.createdAt), "MMM d, yyyy")}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Last Activity</p>
-                      <p className="text-sm font-medium text-gray-900">
-                        {business.lastActivity ? format(new Date(business.lastActivity), "MMM d, yyyy") : "No activity"}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Performance Insights */}
-                {stats.totalMonitored > 0 && (
-                  <div className="mt-6 p-4 bg-blue-50 rounded-xl border border-blue-200">
-                    <h4 className="font-semibold text-blue-900 mb-3 flex items-center gap-2">
-                      <Activity className="w-4 h-4" />
-                      Performance Insights
-                    </h4>
-                    <div className="space-y-2 text-sm text-blue-800">
-                      <p>• Buy Box Success Rate: {buyBoxRate.toFixed(1)}% of monitored offers</p>
-                      <p>
-                        • Total Offers: {stats.totalMonitored + stats.reachedMinPrice} ({stats.totalMonitored} monitored
-                        + {stats.reachedMinPrice} at min price)
-                      </p>
-                      {stats.planUtilization >= 90 && isActivelyMonitored && (
-                        <p className="text-amber-700 font-medium">• ⚠️ Approaching plan limit - consider upgrading</p>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </CardBody>
-            </AccordionItem>
-          </Accordion>
+              {subscription?.status || "NO SUB"}
+            </Chip>
+          </div>
+          <div className="flex items-center gap-2 text-sm text-gray-600 mb-3">
+            <Mail className="w-4 h-4" />
+            <span className="truncate">{business.owner.email}</span>
+          </div>
         </div>
 
-        {/* Action Menu */}
-        <div className="flex-shrink-0 ml-4 mt-4">
-          <Dropdown placement="bottom-end">
-            <DropdownTrigger>
-              <Button isIconOnly size="sm" variant="light" className="text-gray-400 hover:text-gray-600">
-                <MoreVertical className="w-4 h-4" />
-              </Button>
-            </DropdownTrigger>
-            <DropdownMenu aria-label="Business actions">
-              <DropdownItem key="edit" startContent={<Edit className="w-4 h-4" />} onClick={() => onEdit(business)}>
-                Edit Business
-              </DropdownItem>
-              <DropdownItem
-                key="delete"
-                className="text-danger"
-                color="danger"
-                startContent={<Trash2 className="w-4 h-4" />}
-                onClick={() => onDelete(business)}
-              >
-                Delete Business
-              </DropdownItem>
-            </DropdownMenu>
-          </Dropdown>
+        <Dropdown placement="bottom-end">
+          <DropdownTrigger>
+            <Button isIconOnly size="sm" variant="light" className="text-gray-400 hover:text-gray-600">
+              <MoreVertical className="w-4 h-4" />
+            </Button>
+          </DropdownTrigger>
+          <DropdownMenu>
+            <DropdownItem key="edit" startContent={<Edit className="w-4 h-4" />} onClick={() => onEdit(business)}>
+              Edit Business
+            </DropdownItem>
+            <DropdownItem
+              key="delete"
+              className="text-danger"
+              color="danger"
+              startContent={<Trash2 className="w-4 h-4" />}
+              onClick={() => onDelete(business)}
+            >
+              Delete Business
+            </DropdownItem>
+          </DropdownMenu>
+        </Dropdown>
+      </div>
+
+      {/* Key Metrics */}
+      <div className="grid grid-cols-4 gap-4 mb-4">
+        <div className="text-center">
+          <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-1">
+            <Eye className="w-4 h-4 text-blue-600" />
+          </div>
+          <p className="text-lg font-bold text-gray-900">{stats.totalMonitored}</p>
+          <p className="text-xs text-gray-600">Monitored</p>
+        </div>
+
+        <div className="text-center">
+          <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-1">
+            <ShoppingCart className="w-4 h-4 text-green-600" />
+          </div>
+          <p className="text-lg font-bold text-gray-900">{stats.inBuyBox}</p>
+          <p className="text-xs text-gray-600">Buy Box</p>
+        </div>
+
+        <div className="text-center">
+          <div className="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center mx-auto mb-1">
+            <DollarSign className="w-4 h-4 text-amber-600" />
+          </div>
+          <p className="text-lg font-bold text-gray-900">{stats.reachedMinPrice}</p>
+          <p className="text-xs text-gray-600">Min Price</p>
+        </div>
+
+        <div className="text-center">
+          <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-1">
+            <TrendingUp className="w-4 h-4 text-purple-600" />
+          </div>
+          <p className="text-lg font-bold text-gray-900">{buyBoxRate.toFixed(0)}%</p>
+          <p className="text-xs text-gray-600">Success</p>
         </div>
       </div>
+
+      {/* Additional Info */}
+      <div className="flex items-center justify-between text-sm text-gray-600 pt-4 border-t border-gray-100">
+        <div className="flex items-center gap-1">
+          <Building2 className="w-4 h-4" />
+          <span>{subscription?.plan.name || "No Plan"}</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <Calendar className="w-4 h-4" />
+          <span>{format(new Date(business.createdAt), "MMM d, yyyy")}</span>
+        </div>
+      </div>
+
+      {/* Alerts */}
+      {!isActivelyMonitored && stats.totalMonitored > 0 && (
+        <div className="mt-3 p-2 bg-amber-50 border border-amber-200 rounded-lg">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-amber-600" />
+            <span className="text-sm text-amber-800">Monitoring inactive</span>
+          </div>
+        </div>
+      )}
+
+      {stats.planUtilization >= 90 && isActivelyMonitored && (
+        <div className="mt-3 p-2 bg-red-50 border border-red-200 rounded-lg">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-red-600" />
+            <span className="text-sm text-red-800">Plan limit reached ({stats.planUtilization.toFixed(0)}%)</span>
+          </div>
+        </div>
+      )}
     </Card>
   )
 }
@@ -505,7 +365,7 @@ export default function BusinessMonitoringPage() {
   const [businesses, setBusinesses] = useState<BusinessMonitoring[]>([])
   const [filteredBusinesses, setFilteredBusinesses] = useState<BusinessMonitoring[]>([])
   const [searchQuery, setSearchQuery] = useState("")
-  const [statusFilter, setStatusFilter] = useState("all")
+  const [statusFilter, setStatusFilter] = useState("TRIAL") // Default to TRIAL
   const [sortBy, setSortBy] = useState("name")
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -571,14 +431,6 @@ export default function BusinessMonitoringPage() {
                 ["ACTIVE", "TRIAL"].includes(business.subscription.status),
             )
             break
-          case "good_buybox_performance":
-            matchesStatus = Boolean(
-              business.subscription &&
-                ["ACTIVE", "TRIAL"].includes(business.subscription.status) &&
-                business.monitoringStats.totalMonitored > 0 &&
-                business.monitoringStats.inBuyBox / business.monitoringStats.totalMonitored >= 0.7,
-            )
-            break
           default:
             matchesStatus = Boolean(business.subscription && business.subscription.status === statusFilter)
         }
@@ -594,8 +446,6 @@ export default function BusinessMonitoringPage() {
           return b.monitoringStats.totalMonitored - a.monitoringStats.totalMonitored
         case "buybox_desc":
           return b.monitoringStats.inBuyBox - a.monitoringStats.inBuyBox
-        case "utilization_desc":
-          return b.monitoringStats.planUtilization - a.monitoringStats.planUtilization
         case "created_desc":
           return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         default:
@@ -608,13 +458,12 @@ export default function BusinessMonitoringPage() {
 
   const getFilterOptions = () => [
     { key: "all", label: "All Businesses" },
-    { key: "ACTIVE", label: "Active Subscriptions" },
     { key: "TRIAL", label: "Trial Subscriptions" },
+    { key: "ACTIVE", label: "Active Subscriptions" },
     { key: "EXPIRED", label: "Expired Subscriptions" },
     { key: "active_monitoring", label: "Actively Monitoring" },
-    { key: "inactive_monitoring", label: "Not Actively Monitoring" },
-    { key: "high_utilization", label: "High Plan Utilization (80%+)" },
-    { key: "good_buybox_performance", label: "Good Buy Box Performance (70%+)" },
+    { key: "inactive_monitoring", label: "Not Monitoring" },
+    { key: "high_utilization", label: "High Usage (80%+)" },
   ]
 
   const handleEdit = (business: BusinessMonitoring) => {
@@ -631,14 +480,10 @@ export default function BusinessMonitoringPage() {
     try {
       const response = await fetch(`/api/admin/businesses/${businessId}`, {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       })
-      if (!response.ok) {
-        throw new Error("Failed to update business")
-      }
+      if (!response.ok) throw new Error("Failed to update business")
       await fetchBusinessMonitoring()
     } catch (error) {
       console.error("Error updating business:", error)
@@ -648,12 +493,8 @@ export default function BusinessMonitoringPage() {
 
   const handleDeleteBusiness = async (businessId: string) => {
     try {
-      const response = await fetch(`/api/admin/businesses/${businessId}`, {
-        method: "DELETE",
-      })
-      if (!response.ok) {
-        throw new Error("Failed to delete business")
-      }
+      const response = await fetch(`/api/admin/businesses/${businessId}`, { method: "DELETE" })
+      if (!response.ok) throw new Error("Failed to delete business")
       await fetchBusinessMonitoring()
     } catch (error) {
       console.error("Error deleting business:", error)
@@ -663,9 +504,8 @@ export default function BusinessMonitoringPage() {
 
   const getSortOptions = () => [
     { key: "name", label: "Business Name" },
-    { key: "monitored_desc", label: "Most Monitored Offers" },
+    { key: "monitored_desc", label: "Most Monitored" },
     { key: "buybox_desc", label: "Most in Buy Box" },
-    { key: "utilization_desc", label: "Highest Plan Utilization" },
     { key: "created_desc", label: "Newest First" },
   ]
 
@@ -706,32 +546,21 @@ export default function BusinessMonitoringPage() {
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4">
         <div className="max-w-2xl mx-auto">
           <Card className="p-8 text-center shadow-lg border-0">
-            <div className="mb-6">
-              <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Building2 className="w-10 h-10 text-red-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-red-800 mb-2">Unable to Load Business Data</h3>
-              <p className="text-red-600 mb-6">{error}</p>
-              <div className="space-y-2 text-sm text-gray-600 mb-6">
-                <p className="font-medium">This could be due to:</p>
-                <ul className="list-disc list-inside space-y-1 text-left max-w-xs mx-auto">
-                  <li>Database connection issues</li>
-                  <li>Server maintenance</li>
-                  <li>Temporary network problems</li>
-                </ul>
-              </div>
-              <Button
-                color="primary"
-                size="lg"
-                onClick={() => {
-                  setError(null)
-                  fetchBusinessMonitoring()
-                }}
-                className="font-medium"
-              >
-                Retry Connection
-              </Button>
+            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Building2 className="w-10 h-10 text-red-600" />
             </div>
+            <h3 className="text-xl font-semibold text-red-800 mb-2">Unable to Load Business Data</h3>
+            <p className="text-red-600 mb-6">{error}</p>
+            <Button
+              color="primary"
+              size="lg"
+              onClick={() => {
+                setError(null)
+                fetchBusinessMonitoring()
+              }}
+            >
+              Retry Connection
+            </Button>
           </Card>
         </div>
       </div>
@@ -749,62 +578,56 @@ export default function BusinessMonitoringPage() {
             </div>
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Business Monitoring</h1>
-              <p className="text-gray-600 mt-1">Monitor business engagement and offer tracking performance</p>
+              <p className="text-gray-600 mt-1">Monitor business engagement and performance</p>
             </div>
           </div>
         </div>
 
         {/* Summary Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <Card className="p-4 sm:p-6 shadow-sm border-0 bg-white/80 backdrop-blur-sm">
-            <div className="flex items-center justify-between mb-3">
-              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+          <Card className="p-4 shadow-sm border-0 bg-white/80 backdrop-blur-sm">
+            <div className="text-center">
+              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-2">
                 <Building2 className="w-5 h-5 text-blue-600" />
               </div>
-              <span className="text-xs font-medium text-blue-600 uppercase tracking-wide">Total</span>
+              <p className="text-2xl font-bold text-gray-900">{summaryStats.totalBusinesses}</p>
+              <p className="text-sm text-gray-600">Total Businesses</p>
             </div>
-            <p className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">{summaryStats.totalBusinesses}</p>
-            <p className="text-sm text-gray-600">Businesses</p>
           </Card>
 
-          <Card className="p-4 sm:p-6 shadow-sm border-0 bg-white/80 backdrop-blur-sm">
-            <div className="flex items-center justify-between mb-3">
-              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+          <Card className="p-4 shadow-sm border-0 bg-white/80 backdrop-blur-sm">
+            <div className="text-center">
+              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-2">
                 <Activity className="w-5 h-5 text-green-600" />
               </div>
-              <span className="text-xs font-medium text-green-600 uppercase tracking-wide">Active</span>
+              <p className="text-2xl font-bold text-gray-900">{summaryStats.activelyMonitoring}</p>
+              <p className="text-sm text-gray-600">Active Monitoring</p>
             </div>
-            <p className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">{summaryStats.activelyMonitoring}</p>
-            <p className="text-sm text-gray-600">Monitoring</p>
           </Card>
 
-          <Card className="p-4 sm:p-6 shadow-sm border-0 bg-white/80 backdrop-blur-sm">
-            <div className="flex items-center justify-between mb-3">
-              <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+          <Card className="p-4 shadow-sm border-0 bg-white/80 backdrop-blur-sm">
+            <div className="text-center">
+              <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-2">
                 <ShoppingCart className="w-5 h-5 text-purple-600" />
               </div>
-              <span className="text-xs font-medium text-purple-600 uppercase tracking-wide">Buy Box</span>
+              <p className="text-2xl font-bold text-gray-900">{summaryStats.totalInBuyBox}</p>
+              <p className="text-sm text-gray-600">In Buy Box</p>
             </div>
-            <p className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">{summaryStats.totalInBuyBox}</p>
-            <p className="text-sm text-gray-600">In Buy Box</p>
           </Card>
 
-          <Card className="p-4 sm:p-6 shadow-sm border-0 bg-white/80 backdrop-blur-sm">
-            <div className="flex items-center justify-between mb-3">
-              <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
+          <Card className="p-4 shadow-sm border-0 bg-white/80 backdrop-blur-sm">
+            <div className="text-center">
+              <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center mx-auto mb-2">
                 <TrendingUp className="w-5 h-5 text-amber-600" />
               </div>
-              <span className="text-xs font-medium text-amber-600 uppercase tracking-wide">Success</span>
+              <p className="text-2xl font-bold text-gray-900">{summaryStats.averageBuyBoxRate.toFixed(1)}%</p>
+              <p className="text-sm text-gray-600">Success Rate</p>
             </div>
-            <p className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">
-              {summaryStats.averageBuyBoxRate.toFixed(1)}%
-            </p>
-            <p className="text-sm text-gray-600">Avg Rate</p>
           </Card>
         </div>
 
         {/* Filters */}
-        <Card className="p-4 sm:p-6 mb-6 shadow-sm border-0 bg-white/80 backdrop-blur-sm">
+        <Card className="p-4 mb-6 shadow-sm border-0 bg-white/80 backdrop-blur-sm">
           <div className="flex flex-col lg:flex-row gap-4">
             <div className="flex-1">
               <Input
@@ -813,10 +636,7 @@ export default function BusinessMonitoringPage() {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 startContent={<Search className="w-4 h-4 text-gray-400" />}
                 variant="bordered"
-                classNames={{
-                  input: "text-sm",
-                  inputWrapper: "bg-white",
-                }}
+                classNames={{ inputWrapper: "bg-white" }}
               />
             </div>
             <div className="flex flex-col sm:flex-row gap-4">
@@ -827,9 +647,7 @@ export default function BusinessMonitoringPage() {
                 className="w-full sm:w-64"
                 variant="bordered"
                 startContent={<Filter className="w-4 h-4 text-gray-400" />}
-                classNames={{
-                  trigger: "bg-white",
-                }}
+                classNames={{ trigger: "bg-white" }}
               >
                 {getFilterOptions().map((option) => (
                   <SelectItem key={option.key} value={option.key}>
@@ -843,9 +661,7 @@ export default function BusinessMonitoringPage() {
                 onChange={(e) => setSortBy(e.target.value)}
                 className="w-full sm:w-48"
                 variant="bordered"
-                classNames={{
-                  trigger: "bg-white",
-                }}
+                classNames={{ trigger: "bg-white" }}
               >
                 {getSortOptions().map((option) => (
                   <SelectItem key={option.key} value={option.key}>
@@ -858,25 +674,25 @@ export default function BusinessMonitoringPage() {
         </Card>
 
         {/* Business Cards */}
-        <div className="space-y-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {filteredBusinesses.map((business) => (
             <BusinessCard key={business.id} business={business} onEdit={handleEdit} onDelete={handleDelete} />
           ))}
-
-          {filteredBusinesses.length === 0 && !loading && (
-            <Card className="p-12 text-center shadow-sm border-0 bg-white/80 backdrop-blur-sm">
-              <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <Building2 className="w-10 h-10 text-gray-400" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">No businesses found</h3>
-              <p className="text-gray-600 max-w-md mx-auto">
-                {searchQuery || statusFilter !== "all"
-                  ? "Try adjusting your search criteria or filters to find what you're looking for."
-                  : "No businesses have been created yet. They will appear here once users start signing up."}
-              </p>
-            </Card>
-          )}
         </div>
+
+        {filteredBusinesses.length === 0 && !loading && (
+          <Card className="p-12 text-center shadow-sm border-0 bg-white/80 backdrop-blur-sm">
+            <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Building2 className="w-10 h-10 text-gray-400" />
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">No businesses found</h3>
+            <p className="text-gray-600">
+              {searchQuery || statusFilter !== "all"
+                ? "Try adjusting your search or filters."
+                : "No businesses have been created yet."}
+            </p>
+          </Card>
+        )}
 
         {/* Modals */}
         <EditBusinessModal
