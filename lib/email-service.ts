@@ -14,7 +14,6 @@ class EmailService {
     }
   }
   
-
   async sendCustomEmail(to: string, subject: string, htmlContent: string): Promise<void> {
     this.log(`Sending custom email to ${to}`);
     const msg = {
@@ -22,11 +21,14 @@ class EmailService {
       from: '"Siyanda from SalesPath" <hi@salespath.co.za>',
       subject,
       html: `
-        <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
+        <div style="font-family: Arial, sans-serif; color: #374151; line-height: 1.6; max-width: 600px; margin: 0 auto; padding: 20px;">
           ${htmlContent}
-          <p style="margin-top: 20px; color: #666; font-size: 14px;">
-            Best regards,<br>The SalesPath Team
-          </p>
+          <div style="margin-top: 32px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
+            <p style="margin: 0; color: #6b7280; font-size: 14px;">
+              Best regards,<br>
+              <strong style="color: #374151;">The SalesPath Team</strong>
+            </p>
+          </div>
         </div>
       `,
     };

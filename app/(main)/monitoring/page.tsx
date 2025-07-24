@@ -247,6 +247,7 @@ const EmailBusinessModal = ({ isOpen, onClose, business, onSendEmail }: EmailBus
   const [subject, setSubject] = useState("")
   const [emailBody, setEmailBody] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [showSuccessAlert, setShowSuccessAlert] = useState(false)
 
   // Email templates
   const templates = {
@@ -258,33 +259,30 @@ const EmailBusinessModal = ({ isOpen, onClose, business, onSendEmail }: EmailBus
 
 <p>Here's how to get started with offer monitoring:</p>
 
-<h3>👁️ Step 1: Enable Monitoring</h3>
-<ul>
-  <li>Go to your <strong>"Offers"</strong> tab</li>
-  <li>Find the product you want to monitor</li>
-  <li><strong>Click the eye icon</strong> next to the offer</li>
+<h3 style="color: #374151; margin: 16px 0 8px 0;">👁️ Step 1: Enable Monitoring</h3>
+<ul style="margin: 8px 0; padding-left: 20px;">
+  <li style="margin: 4px 0;">Go to your <strong>"Offers"</strong> tab</li>
+  <li style="margin: 4px 0;">Find the product you want to monitor</li>
+  <li style="margin: 4px 0;"><strong>Click the eye icon</strong> next to the offer</li>
 </ul>
 
-<h3>📝 Step 2: Set Minimum Price</h3>
-<ul>
-  <li>A popup will appear asking for your minimum price</li>
-  <li>Set this to protect your profit margins</li>
-  <li><strong>Click confirm</strong> to start monitoring</li>
+<h3 style="color: #374151; margin: 16px 0 8px 0;">📝 Step 2: Set Minimum Price</h3>
+<ul style="margin: 8px 0; padding-left: 20px;">
+  <li style="margin: 4px 0;">A popup will appear asking for your minimum price</li>
+  <li style="margin: 4px 0;">Set this to protect your profit margins</li>
+  <li style="margin: 4px 0;"><strong>Click confirm</strong> to start monitoring</li>
 </ul>
 
-<h3>🎯 How Offer Monitoring Works:</h3>
-<ul>
-  <li>🟢 <strong>Monitoring is ON</strong> - we're tracking price changes</li>
-  <li>⚫ <strong>Monitoring is OFF</strong> - click the eye icon to enable automated tracking</li>
-  <li>🔒 <strong>Set a minimum price</strong> when first enabling monitoring to protect your margins</li>
+<h3 style="color: #374151; margin: 16px 0 8px 0;">🎯 How Offer Monitoring Works:</h3>
+<ul style="margin: 8px 0; padding-left: 20px;">
+  <li style="margin: 4px 0;">🟢 <strong>Monitoring is ON</strong> - we're tracking price changes</li>
+  <li style="margin: 4px 0;">⚫ <strong>Monitoring is OFF</strong> - click the eye icon to enable automated tracking</li>
+  <li style="margin: 4px 0;">🔒 <strong>Set a minimum price</strong> when first enabling monitoring to protect your margins</li>
 </ul>
 
 <p>Once you complete these steps, our system will automatically track price changes and help optimize your offers for better performance.</p>
 
-<p>Need help getting started? Our support team is here to assist you!</p>
-
-<p>Best regards,<br>
-<strong>The SalesPath Team</strong></p>`
+<p>Need help getting started? Our support team is here to assist you!</p>`
     },
     "subscription_reminder": {
       subject: "Your SalesPath Subscription Status",
@@ -294,10 +292,7 @@ const EmailBusinessModal = ({ isOpen, onClose, business, onSendEmail }: EmailBus
 
 <p><strong>Current Status:</strong> {{status}}</p>
 
-<p>If you have any questions or need assistance, please don't hesitate to reach out to our support team.</p>
-
-<p>Best regards,<br>
-<strong>The SalesPath Team</strong></p>`
+<p>If you have any questions or need assistance, please don't hesitate to reach out to our support team.</p>`
     },
     "plan_upgrade": {
       subject: "Upgrade Your SalesPath Plan",
@@ -305,10 +300,7 @@ const EmailBusinessModal = ({ isOpen, onClose, business, onSendEmail }: EmailBus
 
 <p>We noticed that <strong>{{businessName}}</strong> is approaching its plan limits.</p>
 
-<p>You're currently using a high percentage of your plan's capacity. Consider upgrading to continue monitoring more offers without interruption.</p>
-
-<p>Best regards,<br>
-<strong>The SalesPath Team</strong></p>`
+<p>You're currently using a high percentage of your plan's capacity. Consider upgrading to continue monitoring more offers without interruption.</p>`
     },
     "inactive_monitoring": {
       subject: "Reactivate Your SalesPath Monitoring",
@@ -316,10 +308,7 @@ const EmailBusinessModal = ({ isOpen, onClose, business, onSendEmail }: EmailBus
 
 <p>We noticed that monitoring for <strong>{{businessName}}</strong> has been inactive.</p>
 
-<p>Your subscription status is currently <strong>{{status}}</strong>. To resume price monitoring and optimization, please update your subscription.</p>
-
-<p>Best regards,<br>
-<strong>The SalesPath Team</strong></p>`
+<p>Your subscription status is currently <strong>{{status}}</strong>. To resume price monitoring and optimization, please update your subscription.</p>`
     },
     "custom": {
       subject: "",
@@ -332,8 +321,18 @@ const EmailBusinessModal = ({ isOpen, onClose, business, onSendEmail }: EmailBus
       // Reset form when business changes
       setSubject("")
       setEmailBody("")
+      setShowSuccessAlert(false)
     }
   }, [business])
+
+  useEffect(() => {
+    if (showSuccessAlert) {
+      const timer = setTimeout(() => {
+        setShowSuccessAlert(false)
+      }, 5000) // Hide after 5 seconds
+      return () => clearTimeout(timer)
+    }
+  }, [showSuccessAlert])
 
   const handleTemplateChange = (templateKey: string) => {
     const template = templates[templateKey as keyof typeof templates]
@@ -349,9 +348,13 @@ const EmailBusinessModal = ({ isOpen, onClose, business, onSendEmail }: EmailBus
     setIsLoading(true)
     try {
       await onSendEmail(business.id, subject, emailBody)
-      onClose()
+      setShowSuccessAlert(true)
       setSubject("")
       setEmailBody("")
+      // Don't close immediately, let user see success message
+      setTimeout(() => {
+        onClose()
+      }, 2000)
     } catch (error) {
       console.error("Error sending email:", error)
     } finally {
@@ -372,15 +375,30 @@ const EmailBusinessModal = ({ isOpen, onClose, business, onSendEmail }: EmailBus
       <ModalContent>
         <ModalHeader className="flex flex-col gap-1">
           <div className="flex items-center gap-2">
-            <Mail className="w-5 h-5 text-blue-600" />
+            <Mail className="w-5 h-5 text-primary" />
             <span className="text-xl font-semibold">Send Email to {business?.name}</span>
           </div>
-          <p className="text-sm text-gray-600 font-normal">
+          <p className="text-sm text-default-500 font-normal">
             Email will be sent to: {business?.owner.email}
           </p>
         </ModalHeader>
         <ModalBody>
           <div className="space-y-6">
+            {/* Success Alert */}
+            {showSuccessAlert && (
+              <div className="p-4 bg-success-50 border border-success-200 rounded-xl">
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 bg-success-500 rounded-full flex items-center justify-center">
+                    <span className="text-white text-xs">✓</span>
+                  </div>
+                  <span className="font-medium text-success-800">Email sent successfully!</span>
+                </div>
+                <p className="text-sm text-success-700 mt-1">
+                  The email has been delivered to {business?.owner.email}
+                </p>
+              </div>
+            )}
+
             <Select
               label="Email Template"
               placeholder="Choose a template or create custom email"
@@ -421,12 +439,12 @@ const EmailBusinessModal = ({ isOpen, onClose, business, onSendEmail }: EmailBus
               variant="bordered"
             />
 
-            <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl">
-              <p className="text-sm text-blue-800 font-medium mb-2">Available Variables:</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-blue-700">
-                <div>• <code>{"{{name}}"}</code> - Owner&apos;s name</div>
-                <div>• <code>{"{{businessName}}"}</code> - Business name</div>
-                <div>• <code>{"{{status}}"}</code> - Subscription status</div>
+            <div className="p-4 bg-default-50 border border-default-200 rounded-xl">
+              <p className="text-sm text-default-700 font-medium mb-2">Available Variables:</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-default-600">
+                <div>• <code className="bg-default-100 px-1 rounded">{"{{name}}"}</code> - Owner's name</div>
+                <div>• <code className="bg-default-100 px-1 rounded">{"{{businessName}}"}</code> - Business name</div>
+                <div>• <code className="bg-default-100 px-1 rounded">{"{{status}}"}</code> - Subscription status</div>
               </div>
             </div>
           </div>
@@ -439,7 +457,7 @@ const EmailBusinessModal = ({ isOpen, onClose, business, onSendEmail }: EmailBus
             color="primary"
             onPress={handleSubmit}
             isLoading={isLoading}
-            isDisabled={!subject.trim() || !emailBody.trim()}
+            isDisabled={!subject.trim() || !emailBody.trim() || showSuccessAlert}
             startContent={<Send className="w-4 h-4" />}
           >
             Send Email
