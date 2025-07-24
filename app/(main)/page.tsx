@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { JSX, useEffect, useState } from "react";
 import { format } from "date-fns";
 import { Card, Chip } from "@nextui-org/react";
-import { Users, ShoppingBag, Eye, Building2, Activity } from "lucide-react";
+import { Users, Eye, Building2, Activity } from "lucide-react";
 
 interface DashboardStats {
   userCount: number;
