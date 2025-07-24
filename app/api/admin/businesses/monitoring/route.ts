@@ -68,11 +68,11 @@ export async function GET() {
         -- Aggregated stats (calculated in DB, not client)
         COUNT(CASE WHEN lo."isMonitored" = true THEN 1 END)::int as "totalMonitoredOffers",
         COUNT(CASE WHEN lo."isMonitored" = true AND lo."minPrice" IS NOT NULL 
-                   AND od."sellingPrice" <= lo."minPrice" THEN 1 END)::int as "reachedMinPrice",
+                   AND od."selling_price" <= lo."minPrice" THEN 1 END)::int as "reachedMinPrice",
         COUNT(CASE WHEN lo."isMonitored" = true AND (lo."minPrice" IS NULL 
-                   OR od."sellingPrice" > lo."minPrice") THEN 1 END)::int as "currentlyMonitored",
+                   OR od."selling_price" > lo."minPrice") THEN 1 END)::int as "currentlyMonitored",
         COUNT(CASE WHEN lo."isMonitored" = true AND (lo."minPrice" IS NULL 
-                   OR od."sellingPrice" > lo."minPrice") AND od."inBuyBox" = true THEN 1 END)::int as "inBuyBox",
+                   OR od."selling_price" > lo."minPrice") AND od."inBuyBox" = true THEN 1 END)::int as "inBuyBox",
         MAX(lo."lastMonitored") as "lastActivity"
       FROM "Business" b
       LEFT JOIN "User" u ON b."ownerId" = u.id
