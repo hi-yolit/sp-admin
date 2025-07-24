@@ -1,242 +1,407 @@
-'use client';
+"use client"
 
-import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
-import { JSX, useEffect, useState } from "react";
-import { format } from "date-fns";
-import { Card, Chip } from "@nextui-org/react";
-import { Users, Eye, Building2, Activity } from "lucide-react";
+import { useSession } from "next-auth/react"
+import { useRouter } from "next/navigation"
+import { type JSX, useEffect, useState } from "react"
+import { format } from "date-fns"
+import { Card, Chip, CardHeader, CardBody } from "@nextui-org/react"
+import {
+  Users,
+  Eye,
+  Building2,
+  Activity,
+  TrendingUp,
+  ShoppingCart,
+  Database,
+  Clock,
+  CheckCircle,
+  AlertCircle,
+} from "lucide-react"
 
 interface DashboardStats {
-  userCount: number;
-  totalBusinessCount: number;
-  activeSubscriptions: number;
-  activelyMonitoringBusinessCount: number;
-  totalOfferCount: number;
-  actuallyMonitoredOfferCount: number;
-  activeBusinessCount: number;
-  trialBusinessCount: number;
-  inactiveBusinessCount: number;
+  userCount: number
+  totalBusinessCount: number
+  activeSubscriptions: number
+  activelyMonitoringBusinessCount: number
+  totalOfferCount: number
+  actuallyMonitoredOfferCount: number
+  activeBusinessCount: number
+  trialBusinessCount: number
+  inactiveBusinessCount: number
   recentSubscriptionChanges: {
-    business: { name: string };
-    status: string;
-    updatedAt: string;
-  }[];
+    business: { name: string }
+    status: string
+    updatedAt: string
+  }[]
 }
 
 interface SystemHealth {
-  status: string;
-  database: string;
-  timestamp: string;
+  status: string
+  database: string
+  timestamp: string
 }
 
-const statusColorMap: Record<string, string> = {
+const statusColorMap: Record<string, "primary" | "success" | "danger" | "warning" | "default"> = {
   ACTIVE: "success",
   TRIAL: "primary",
   CANCELLED: "danger",
   PAST_DUE: "warning",
   EXPIRED: "warning",
   PENDING: "default",
-};
+}
 
 export default function Home() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
-  const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [health, setHealth] = useState<SystemHealth | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const { data: session, status } = useSession()
+  const router = useRouter()
+  const [stats, setStats] = useState<DashboardStats | null>(null)
+  const [health, setHealth] = useState<SystemHealth | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/login');
+    if (status === "unauthenticated") {
+      router.push("/login")
     }
-  }, [status, router]);
+  }, [status, router])
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const [statsResponse, healthResponse] = await Promise.all([
-          fetch('/api/dashboard/stats'),
-          fetch('/api/health')
-        ]);
+        const [statsResponse, healthResponse] = await Promise.all([fetch("/api/dashboard/stats"), fetch("/api/health")])
 
         if (!statsResponse.ok || !healthResponse.ok) {
-          throw new Error('Failed to fetch dashboard data');
+          throw new Error("Failed to fetch dashboard data")
         }
 
-        const statsData = await statsResponse.json();
-        const healthData = await healthResponse.json();
+        const statsData = await statsResponse.json()
+        const healthData = await healthResponse.json()
 
-        setStats(statsData.stats);
-        setHealth(healthData);
+        setStats(statsData.stats)
+        setHealth(healthData)
       } catch (err) {
-        setError('Failed to load dashboard data');
-        console.error('Dashboard fetch error:', err);
+        setError("Failed to load dashboard data")
+        console.error("Dashboard fetch error:", err)
       }
-    };
+    }
 
     if (session) {
-      fetchDashboardData();
+      fetchDashboardData()
     }
-  }, [session]);
+  }, [session])
 
-  if (status === 'loading') {
+  if (status === "loading") {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-500 border-t-transparent mx-auto mb-6"></div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Loading Dashboard</h3>
+          <p className="text-gray-600">Please wait while we prepare your admin panel...</p>
+        </div>
       </div>
-    );
+    )
   }
 
   if (!session) {
-    return null;
+    return null
   }
 
+  const monitoringRate = stats?.totalOfferCount ? (stats.actuallyMonitoredOfferCount / stats.totalOfferCount) * 100 : 0
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <main className="p-4 sm:p-6 max-w-7xl mx-auto">
-        <div className="mb-6 sm:mb-8">
-          <h1 className="text-2xl sm:text-3xl font-semibold text-gray-800">Admin Dashboard</h1>
-          <p className="text-gray-600 mt-2">Welcome back, {session.user?.name ?? 'Admin'}</p>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+      <main className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex items-center gap-4 mb-6">
+            <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center shadow-lg">
+              <Activity className="h-8 w-8 text-white" />
+            </div>
+            <div>
+              <h1 className="text-3xl sm:text-4xl font-bold text-gray-900">Admin Dashboard</h1>
+              <p className="text-gray-600 text-lg mt-1">Welcome back, {session.user?.name ?? "Admin"}</p>
+            </div>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-          <DashboardCard
+        {/* Key Metrics */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <MetricCard
             icon={<Users className="h-6 w-6 text-blue-600" />}
             title="Total Users"
             value={stats?.userCount}
+            bgColor="bg-gradient-to-br from-blue-50 to-blue-100"
+            iconBg="bg-blue-100"
           />
-          <DashboardCard
+          <MetricCard
             icon={<Building2 className="h-6 w-6 text-green-600" />}
             title="Active Subscriptions"
             value={stats?.activeSubscriptions}
             subtitle={`${stats?.totalBusinessCount} total businesses`}
+            bgColor="bg-gradient-to-br from-green-50 to-green-100"
+            iconBg="bg-green-100"
           />
-          <DashboardCard
+          <MetricCard
             icon={<Activity className="h-6 w-6 text-purple-600" />}
             title="Actively Monitoring"
             value={stats?.activelyMonitoringBusinessCount}
             subtitle={`${stats?.activeSubscriptions} with active subs`}
+            bgColor="bg-gradient-to-br from-purple-50 to-purple-100"
+            iconBg="bg-purple-100"
           />
-          <DashboardCard
+          <MetricCard
             icon={<Eye className="h-6 w-6 text-amber-600" />}
             title="Monitored Offers"
             value={stats?.actuallyMonitoredOfferCount}
             subtitle={`${stats?.totalOfferCount} total offers`}
+            bgColor="bg-gradient-to-br from-amber-50 to-amber-100"
+            iconBg="bg-amber-100"
           />
         </div>
 
-        <div className="mt-6 sm:mt-8 grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-          <Card className="p-4 sm:p-6 bg-white shadow">
-            <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-4">Business Stats</h2>
-            <BusinessStats stats={stats} />
+        {/* Secondary Metrics */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
+          <Card className="p-6 shadow-sm border-0 bg-white/80 backdrop-blur-sm">
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center">
+                <TrendingUp className="w-6 h-6 text-indigo-600" />
+              </div>
+              <span className="text-xs font-medium text-indigo-600 uppercase tracking-wide">Performance</span>
+            </div>
+            <p className="text-2xl font-bold text-gray-900 mb-1">{monitoringRate.toFixed(1)}%</p>
+            <p className="text-sm text-gray-600">Monitoring Rate</p>
+            <div className="mt-3 w-full bg-gray-200 rounded-full h-2">
+              <div
+                className="bg-gradient-to-r from-indigo-500 to-indigo-600 h-2 rounded-full transition-all duration-300"
+                style={{ width: `${Math.min(monitoringRate, 100)}%` }}
+              ></div>
+            </div>
           </Card>
 
-          <Card className="p-4 sm:p-6 bg-white shadow">
-            <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-4">System Status</h2>
-            <SystemStatus health={health} />
+          <Card className="p-6 shadow-sm border-0 bg-white/80 backdrop-blur-sm">
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center">
+                <ShoppingCart className="w-6 h-6 text-emerald-600" />
+              </div>
+              <span className="text-xs font-medium text-emerald-600 uppercase tracking-wide">Business</span>
+            </div>
+            <p className="text-2xl font-bold text-gray-900 mb-1">{stats?.trialBusinessCount || 0}</p>
+            <p className="text-sm text-gray-600">Trial Businesses</p>
           </Card>
 
-          <Card className="p-4 sm:p-6 bg-white shadow">
-            <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-4">Recent Activity</h2>
-            <RecentActivity recentChanges={stats?.recentSubscriptionChanges} />
+          <Card className="p-6 shadow-sm border-0 bg-white/80 backdrop-blur-sm">
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
+                <AlertCircle className="w-6 h-6 text-red-600" />
+              </div>
+              <span className="text-xs font-medium text-red-600 uppercase tracking-wide">Inactive</span>
+            </div>
+            <p className="text-2xl font-bold text-gray-900 mb-1">{stats?.inactiveBusinessCount || 0}</p>
+            <p className="text-sm text-gray-600">Inactive Businesses</p>
           </Card>
         </div>
 
+        {/* Dashboard Sections */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Business Overview */}
+          <Card className="shadow-sm border-0 bg-white/80 backdrop-blur-sm">
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <Building2 className="w-5 h-5 text-blue-600" />
+                </div>
+                <h2 className="text-lg font-semibold text-gray-900">Business Overview</h2>
+              </div>
+            </CardHeader>
+            <CardBody className="pt-0">
+              <BusinessStats stats={stats} />
+            </CardBody>
+          </Card>
+
+          {/* System Health */}
+          <Card className="shadow-sm border-0 bg-white/80 backdrop-blur-sm">
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                  <Database className="w-5 h-5 text-green-600" />
+                </div>
+                <h2 className="text-lg font-semibold text-gray-900">System Health</h2>
+              </div>
+            </CardHeader>
+            <CardBody className="pt-0">
+              <SystemStatus health={health} />
+            </CardBody>
+          </Card>
+
+          {/* Recent Activity */}
+          <Card className="shadow-sm border-0 bg-white/80 backdrop-blur-sm">
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                  <Clock className="w-5 h-5 text-purple-600" />
+                </div>
+                <h2 className="text-lg font-semibold text-gray-900">Recent Activity</h2>
+              </div>
+            </CardHeader>
+            <CardBody className="pt-0">
+              <RecentActivity recentChanges={stats?.recentSubscriptionChanges} />
+            </CardBody>
+          </Card>
+        </div>
+
+        {/* Error Display */}
         {error && (
-          <div className="mt-4 p-4 bg-red-50 text-red-700 rounded-lg">
-            {error}
-          </div>
+          <Card className="mt-6 p-6 shadow-sm border-0 bg-red-50 border-red-200">
+            <div className="flex items-center gap-3">
+              <AlertCircle className="w-5 h-5 text-red-600" />
+              <p className="text-red-800 font-medium">{error}</p>
+            </div>
+          </Card>
         )}
       </main>
     </div>
-  );
+  )
 }
 
 // Component for business statistics
 function BusinessStats({ stats }: { stats: DashboardStats | null }) {
   return (
     <div className="space-y-4">
-      <StatRow label="Total Businesses" value={stats?.totalBusinessCount} />
-      <StatRow label="Active Subscriptions" value={stats?.activeSubscriptions} color="text-green-600" />
-      <StatRow label="Currently Monitoring" value={stats?.activelyMonitoringBusinessCount} color="text-blue-600" />
-      <StatRow label="Expired/Cancelled" value={stats?.inactiveBusinessCount} color="text-red-600" />
+      <StatRow
+        label="Total Businesses"
+        value={stats?.totalBusinessCount}
+        icon={<Building2 className="w-4 h-4 text-gray-500" />}
+      />
+      <StatRow
+        label="Active Subscriptions"
+        value={stats?.activeSubscriptions}
+        color="text-green-600"
+        icon={<CheckCircle className="w-4 h-4 text-green-500" />}
+      />
+      <StatRow
+        label="Currently Monitoring"
+        value={stats?.activelyMonitoringBusinessCount}
+        color="text-blue-600"
+        icon={<Eye className="w-4 h-4 text-blue-500" />}
+      />
+      <StatRow
+        label="Expired/Cancelled"
+        value={stats?.inactiveBusinessCount}
+        color="text-red-600"
+        icon={<AlertCircle className="w-4 h-4 text-red-500" />}
+      />
     </div>
-  );
+  )
 }
 
 // Component for system status
 function SystemStatus({ health }: { health: SystemHealth | null }) {
+  const isConnected = health?.database === "connected"
+
   return (
-    <div className="space-y-3 sm:space-y-4">
-      <StatRow
-        label="Database Connection"
-        value={health?.database === 'connected' ? 'Connected' : 'Disconnected'}
-        color={health?.database === 'connected' ? 'text-green-600' : 'text-red-600'}
-      />
-      <StatRow
-        label="Last Update"
-        value={health?.timestamp ? format(new Date(health.timestamp), 'MMM d, yyyy h:mm a') : 'N/A'}
-      />
+    <div className="space-y-4">
+      <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+        <div className="flex items-center gap-3">
+          <div className={`w-3 h-3 rounded-full ${isConnected ? "bg-green-500" : "bg-red-500"}`}></div>
+          <span className="text-sm font-medium text-gray-700">Database</span>
+        </div>
+        <Chip color={isConnected ? "success" : "danger"} variant="flat" size="sm" className="font-medium">
+          {isConnected ? "Connected" : "Disconnected"}
+        </Chip>
+      </div>
+
+      <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+        <div className="flex items-center gap-3">
+          <Clock className="w-4 h-4 text-gray-500" />
+          <span className="text-sm font-medium text-gray-700">Last Update</span>
+        </div>
+        <span className="text-sm text-gray-600">
+          {health?.timestamp ? format(new Date(health.timestamp), "MMM d, h:mm a") : "N/A"}
+        </span>
+      </div>
     </div>
-  );
+  )
 }
 
 // Component for recent activity
-function RecentActivity({ recentChanges }: { recentChanges?: { business: { name: string }; status: string; updatedAt: string }[] }) {
+function RecentActivity({
+  recentChanges,
+}: { recentChanges?: { business: { name: string }; status: string; updatedAt: string }[] }) {
   if (!recentChanges || recentChanges.length === 0) {
-    return <p className="text-gray-500">No recent changes.</p>;
+    return (
+      <div className="text-center py-8">
+        <Clock className="w-8 h-8 text-gray-400 mx-auto mb-3" />
+        <p className="text-gray-500 text-sm">No recent activity</p>
+      </div>
+    )
   }
 
   return (
     <div className="space-y-3">
-      {recentChanges.map((change, index) => (
-        <div key={index} className="flex justify-between items-center text-sm">
-          <span className="text-gray-600">{change.business.name}</span>
-          <Chip color={statusColorMap[change.status] as "primary" | "success" | "danger" | "warning"} variant="flat" size="sm">
+      {recentChanges.slice(0, 5).map((change, index) => (
+        <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-gray-900 truncate">{change.business.name}</p>
+            <p className="text-xs text-gray-500">{format(new Date(change.updatedAt), "MMM d, h:mm a")}</p>
+          </div>
+          <Chip color={statusColorMap[change.status]} variant="flat" size="sm" className="ml-3 font-medium">
             {change.status}
           </Chip>
         </div>
       ))}
     </div>
-  );
+  )
 }
 
 // Utility components
-function DashboardCard({ 
-  icon, 
-  title, 
-  value, 
-  subtitle 
-}: Readonly<{ 
-  icon: JSX.Element; 
-  title: string; 
-  value?: number;
-  subtitle?: string;
+function MetricCard({
+  icon,
+  title,
+  value,
+  subtitle,
+  bgColor = "bg-gradient-to-br from-gray-50 to-gray-100",
+  iconBg = "bg-gray-100",
+}: Readonly<{
+  icon: JSX.Element
+  title: string
+  value?: number
+  subtitle?: string
+  bgColor?: string
+  iconBg?: string
 }>) {
   return (
-    <Card className="p-4 sm:p-6 bg-white shadow hover:shadow-md transition-shadow">
-      <div className="flex items-center">
-        <div className="p-3 bg-gray-100 rounded-full">{icon}</div>
-        <div className="ml-4">
-          <p className="text-sm font-medium text-gray-600">{title}</p>
-          <p className="text-xl sm:text-2xl font-semibold text-gray-900">
-            {value ?? 'Loading...'}
-          </p>
-          {subtitle && (
-            <p className="text-xs text-gray-500 mt-1">{subtitle}</p>
-          )}
-        </div>
+    <Card className={`p-6 shadow-sm border-0 ${bgColor} backdrop-blur-sm`}>
+      <div className="flex items-center justify-between mb-4">
+        <div className={`w-12 h-12 ${iconBg} rounded-xl flex items-center justify-center`}>{icon}</div>
+        <span className="text-xs font-medium text-gray-600 uppercase tracking-wide">{title.split(" ")[0]}</span>
       </div>
+      <p className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">
+        {value !== undefined ? value.toLocaleString() : "Loading..."}
+      </p>
+      <p className="text-sm text-gray-600">{title}</p>
+      {subtitle && <p className="text-xs text-gray-500 mt-2">{subtitle}</p>}
     </Card>
-  );
+  )
 }
 
-function StatRow({ label, value, color = "text-gray-600" }: { label: string; value?: number | string; color?: string }) {
+function StatRow({
+  label,
+  value,
+  color = "text-gray-600",
+  icon,
+}: {
+  label: string
+  value?: number | string
+  color?: string
+  icon?: JSX.Element
+}) {
   return (
-    <div className="flex justify-between items-center">
-      <span className="text-gray-600">{label}</span>
-      <span className={`font-semibold ${color}`}>{value ?? 'Loading...'}</span>
+    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+      <div className="flex items-center gap-3">
+        {icon}
+        <span className="text-sm font-medium text-gray-700">{label}</span>
+      </div>
+      <span className={`font-semibold ${color}`}>
+        {value !== undefined ? (typeof value === "number" ? value.toLocaleString() : value) : "Loading..."}
+      </span>
     </div>
-  );
+  )
 }
