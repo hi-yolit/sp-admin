@@ -442,7 +442,7 @@ const EmailBusinessModal = ({ isOpen, onClose, business, onSendEmail }: EmailBus
             <div className="p-4 bg-default-50 border border-default-200 rounded-xl">
               <p className="text-sm text-default-700 font-medium mb-2">Available Variables:</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-default-600">
-                <div>• <code className="bg-default-100 px-1 rounded">{"{{name}}"}</code> - Owner's name</div>
+                <div>• <code className="bg-default-100 px-1 rounded">{"{{name}}"}</code> - Owner&apos;s name</div>
                 <div>• <code className="bg-default-100 px-1 rounded">{"{{businessName}}"}</code> - Business name</div>
                 <div>• <code className="bg-default-100 px-1 rounded">{"{{status}}"}</code> - Subscription status</div>
               </div>
