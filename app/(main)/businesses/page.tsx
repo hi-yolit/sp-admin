@@ -270,12 +270,13 @@ const EditBusinessModal = ({ isOpen, onClose, business, onUpdate, onUpdateSubscr
                     <div className="text-center p-6 bg-warning-50 border border-warning-200 rounded-xl">
                       <p className="text-warning-800 font-medium">No Subscription Found</p>
                       <p className="text-sm text-warning-700 mt-1">
-                        This business doesn&apos;t have an active subscription.
+                        This business doesn't have an active subscription.
                       </p>
                     </div>
                   ) : (
                     <>
                       <Select
+                        key={`plan-select-${business?.subscription?.id || 'no-sub'}`}
                         label="Subscription Plan"
                         selectedKeys={selectedPlanId ? [selectedPlanId] : []}
                         onChange={(e) => setSelectedPlanId(e.target.value)}
@@ -297,6 +298,7 @@ const EditBusinessModal = ({ isOpen, onClose, business, onUpdate, onUpdateSubscr
                       )}
 
                       <Select
+                        key={`status-select-${business?.subscription?.id || 'no-sub'}`}
                         label="Subscription Status"
                         selectedKeys={[subscriptionStatus]}
                         onChange={(e) => setSubscriptionStatus(e.target.value as SubscriptionStatus)}
@@ -612,6 +614,7 @@ const EmailBusinessModal = ({ isOpen, onClose, business, onSendEmail }: EmailBus
             )}
 
             <Select
+              key={`email-template-select-${business?.id || 'no-business'}`}
               label="Email Template"
               placeholder="Choose a template or create custom email"
               onChange={(e) => handleTemplateChange(e.target.value)}
@@ -1158,6 +1161,7 @@ export default function BusinessMonitoringPage() {
             </div>
             <div className="flex flex-col sm:flex-row gap-4">
               <Select
+                key={`filter-select-${statusFilter}`}
                 placeholder="Filter by status"
                 selectedKeys={statusFilter ? [statusFilter] : []}
                 onChange={(e) => setStatusFilter(e.target.value)}
@@ -1173,6 +1177,7 @@ export default function BusinessMonitoringPage() {
                 ))}
               </Select>
               <Select
+                key={`sort-select-${sortBy}`}
                 placeholder="Sort by"
                 selectedKeys={sortBy ? [sortBy] : []}
                 onChange={(e) => setSortBy(e.target.value)}
