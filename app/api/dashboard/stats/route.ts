@@ -14,24 +14,57 @@ export async function GET() {
 
         const [
             userCount,
-            businessCount,
-            offerCount,
-            monitoredOfferCount,
+            totalBusinessCount,
+            totalOfferCount,
             businessStats,
+            activeBusinessesWithMonitoring,
             recentChanges
         ] = await Promise.all([
+            // Total users
             prisma.user.count(),
+            
+            // Total businesses (all)
             prisma.business.count(),
+            
+            // Total offers (all)
             prisma.offerDTO.count(),
-            prisma.localOffer.count({
-                where: { isMonitored: true }
-            }),
+            
+            // Subscription status breakdown
             prisma.subscription.groupBy({
                 by: ['status'],
                 _count: {
                     _all: true
                 }
             }),
+            
+            // Get businesses with active subscriptions and their monitored offers
+            prisma.business.findMany({
+                where: {
+                    subscription: {
+                        status: {
+                            in: ['ACTIVE', 'TRIAL']
+                        }
+                    }
+                },
+                include: {
+                    _count: {
+                        select: {
+                            monitoredOffers: {
+                                where: {
+                                    isMonitored: true
+                                }
+                            }
+                        }
+                    },
+                    subscription: {
+                        select: {
+                            status: true
+                        }
+                    }
+                }
+            }),
+            
+            // Recent subscription changes
             prisma.subscription.findMany({
                 take: 5,
                 orderBy: {
@@ -47,8 +80,11 @@ export async function GET() {
             })
         ]);
 
+        // Calculate stats from businesses with active subscriptions only
         const activeBusinessCount = businessStats.find(stat => stat.status === 'ACTIVE')?._count?._all ?? 0;
         const trialBusinessCount = businessStats.find(stat => stat.status === 'TRIAL')?._count?._all ?? 0;
+        const totalActiveSubscriptions = activeBusinessCount + trialBusinessCount;
+        
         const inactiveBusinessCount = businessStats.reduce((acc, stat) => {
             if (['EXPIRED', 'CANCELLED', 'PAST_DUE'].includes(stat?.status ?? '')) {
                 return acc + (stat._count?._all ?? 0);
@@ -56,12 +92,24 @@ export async function GET() {
             return acc;
         }, 0);
 
+        // Only count monitored offers from businesses with active subscriptions
+        const actuallyMonitoredOfferCount = activeBusinessesWithMonitoring.reduce((total, business) => {
+            return total + business._count.monitoredOffers;
+        }, 0);
+
+        // Count businesses that are actively monitoring (have active subscription + monitored offers > 0)
+        const activelyMonitoringBusinessCount = activeBusinessesWithMonitoring.filter(
+            business => business._count.monitoredOffers > 0
+        ).length;
+
         return NextResponse.json({
             stats: {
                 userCount,
-                businessCount,
-                offerCount,
-                monitoredOfferCount,
+                totalBusinessCount, // All businesses
+                activeSubscriptions: totalActiveSubscriptions, // Only active/trial
+                activelyMonitoringBusinessCount, // Active subscriptions with monitored offers
+                totalOfferCount, // All offers in system
+                actuallyMonitoredOfferCount, // Only offers from active subscriptions
                 activeBusinessCount,
                 trialBusinessCount,
                 inactiveBusinessCount,

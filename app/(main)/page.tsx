@@ -5,13 +5,15 @@ import { useRouter } from "next/navigation";
 import { JSX, useEffect, useState } from "react";
 import { format } from "date-fns";
 import { Card, Chip } from "@nextui-org/react";
-import { Users, ShoppingBag, Eye, Building2 } from "lucide-react";
+import { Users, ShoppingBag, Eye, Building2, Activity } from "lucide-react";
 
 interface DashboardStats {
   userCount: number;
-  businessCount: number;
-  offerCount: number;
-  monitoredOfferCount: number;
+  totalBusinessCount: number;
+  activeSubscriptions: number;
+  activelyMonitoringBusinessCount: number;
+  totalOfferCount: number;
+  actuallyMonitoredOfferCount: number;
   activeBusinessCount: number;
   trialBusinessCount: number;
   inactiveBusinessCount: number;
@@ -99,10 +101,29 @@ export default function Home() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-          <DashboardCard icon={<Users className="h-6 w-6 text-blue-600" />} title="Total Users" value={stats?.userCount} />
-          <DashboardCard icon={<Building2 className="h-6 w-6 text-green-600" />} title="Total Businesses" value={stats?.businessCount} />
-          <DashboardCard icon={<ShoppingBag className="h-6 w-6 text-purple-600" />} title="Total Offers" value={stats?.offerCount} />
-          <DashboardCard icon={<Eye className="h-6 w-6 text-amber-600" />} title="Monitored Offers" value={stats?.monitoredOfferCount} />
+          <DashboardCard
+            icon={<Users className="h-6 w-6 text-blue-600" />}
+            title="Total Users"
+            value={stats?.userCount}
+          />
+          <DashboardCard
+            icon={<Building2 className="h-6 w-6 text-green-600" />}
+            title="Active Subscriptions"
+            value={stats?.activeSubscriptions}
+            subtitle={`${stats?.totalBusinessCount} total businesses`}
+          />
+          <DashboardCard
+            icon={<Activity className="h-6 w-6 text-purple-600" />}
+            title="Actively Monitoring"
+            value={stats?.activelyMonitoringBusinessCount}
+            subtitle={`${stats?.activeSubscriptions} with active subs`}
+          />
+          <DashboardCard
+            icon={<Eye className="h-6 w-6 text-amber-600" />}
+            title="Monitored Offers"
+            value={stats?.actuallyMonitoredOfferCount}
+            subtitle={`${stats?.totalOfferCount} total offers`}
+          />
         </div>
 
         <div className="mt-6 sm:mt-8 grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
@@ -136,9 +157,9 @@ export default function Home() {
 function BusinessStats({ stats }: { stats: DashboardStats | null }) {
   return (
     <div className="space-y-4">
-      <StatRow label="Total Businesses" value={stats?.businessCount} />
-      <StatRow label="Active Businesses" value={stats?.activeBusinessCount} color="text-green-600" />
-      <StatRow label="Trial Businesses" value={stats?.trialBusinessCount} color="text-blue-600" />
+      <StatRow label="Total Businesses" value={stats?.totalBusinessCount} />
+      <StatRow label="Active Subscriptions" value={stats?.activeSubscriptions} color="text-green-600" />
+      <StatRow label="Currently Monitoring" value={stats?.activelyMonitoringBusinessCount} color="text-blue-600" />
       <StatRow label="Expired/Cancelled" value={stats?.inactiveBusinessCount} color="text-red-600" />
     </div>
   );
@@ -182,14 +203,29 @@ function RecentActivity({ recentChanges }: { recentChanges?: { business: { name:
 }
 
 // Utility components
-function DashboardCard({ icon, title, value }: Readonly<{ icon: JSX.Element; title: string; value?: number }>) {
+function DashboardCard({ 
+  icon, 
+  title, 
+  value, 
+  subtitle 
+}: Readonly<{ 
+  icon: JSX.Element; 
+  title: string; 
+  value?: number;
+  subtitle?: string;
+}>) {
   return (
     <Card className="p-4 sm:p-6 bg-white shadow hover:shadow-md transition-shadow">
       <div className="flex items-center">
         <div className="p-3 bg-gray-100 rounded-full">{icon}</div>
         <div className="ml-4">
           <p className="text-sm font-medium text-gray-600">{title}</p>
-          <p className="text-xl sm:text-2xl font-semibold text-gray-900">{value ?? 'Loading...'}</p>
+          <p className="text-xl sm:text-2xl font-semibold text-gray-900">
+            {value ?? 'Loading...'}
+          </p>
+          {subtitle && (
+            <p className="text-xs text-gray-500 mt-1">{subtitle}</p>
+          )}
         </div>
       </div>
     </Card>
