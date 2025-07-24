@@ -79,7 +79,7 @@ export async function GET() {
       LEFT JOIN "Subscription" s ON b.id = s."businessId"
       LEFT JOIN "Plan" p ON s."planId" = p.id
       LEFT JOIN "LocalOffer" lo ON b.id = lo."businessId"
-      LEFT JOIN "OfferDTO" od ON lo."offerDtoId" = od.id
+      LEFT JOIN "offers" od ON lo."offerDtoId" = od."offer_id" AND lo."businessId" = od."businessId"
       GROUP BY b.id, b.name, b."createdAt", u.id, u.name, u.email, 
                s.id, s.status, s."nextBillingDate", p.id, p.name, p."maxOffers", p.price
       ORDER BY b."createdAt" DESC
