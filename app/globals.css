@@ -32,6 +32,37 @@ body {
     @apply h-6 w-6 text-default-400 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200;
   }
 
+  /* Prevent iOS zoom on input focus */
+  input, 
+  textarea, 
+  select {
+    font-size: 16px !important;
+    transform-origin: left top;
+    transform: scale(1);
+  }
+  
+  /* For NextUI components specifically */
+  .nextui-input input,
+  .nextui-textarea textarea,
+  .nextui-select select {
+    font-size: 16px !important;
+  }
+
+  /* NextUI data-slot approach */
+  [data-slot="input"] input,
+  [data-slot="textarea"] textarea {
+    font-size: 16px !important;
+  }
+
+  /* Alternative approach - disable zoom entirely on mobile */
+  @media screen and (max-width: 768px) {
+    input, 
+    textarea, 
+    select {
+      font-size: 16px !important;
+    }
+  }
+
   /* Headings */
   h1, .h1 {
     @apply text-5xl font-semibold leading-snug;
@@ -134,6 +165,7 @@ body {
     }
   }
 }
+
 @layer utilities {
   .text-balance {
     text-wrap: balance;

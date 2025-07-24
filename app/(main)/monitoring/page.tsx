@@ -252,56 +252,74 @@ const EmailBusinessModal = ({ isOpen, onClose, business, onSendEmail }: EmailBus
   const templates = {
     "start_monitoring": {
       subject: "Start Monitoring Your Offers with SalesPath",
-      body: `Hi {{name}},
+      body: `<p>Hi {{name}},</p>
 
-Great news! Your SalesPath subscription for {{businessName}} is active, but we noticed you haven't started monitoring any offers yet.
+<p>Great news! Your SalesPath subscription for <strong>{{businessName}}</strong> is active, but we noticed you haven't started monitoring any offers yet.</p>
 
-Here's how to get started with offer monitoring:
+<p>Here's how to get started with offer monitoring:</p>
 
-👁️ **Step 1: Enable Monitoring**
-   • Go to your "Offers" tab
-   • Find the product you want to monitor
-   • Click the eye icon next to the offer
+<h3>👁️ Step 1: Enable Monitoring</h3>
+<ul>
+  <li>Go to your <strong>"Offers"</strong> tab</li>
+  <li>Find the product you want to monitor</li>
+  <li><strong>Click the eye icon</strong> next to the offer</li>
+</ul>
 
-📝 **Step 2: Set Minimum Price**
-   • A popup will appear asking for your minimum price
-   • Set this to protect your profit margins
-   • Click confirm to start monitoring
+<h3>📝 Step 2: Set Minimum Price</h3>
+<ul>
+  <li>A popup will appear asking for your minimum price</li>
+  <li>Set this to protect your profit margins</li>
+  <li><strong>Click confirm</strong> to start monitoring</li>
+</ul>
 
-🎯 **How Offer Monitoring Works:**
-   • 🟢 Monitoring is ON - we're tracking price changes
-   • ⚫ Monitoring is OFF - click the eye icon to enable automated tracking
-   • 🔒 Set a minimum price when first enabling monitoring to protect your margins
+<h3>🎯 How Offer Monitoring Works:</h3>
+<ul>
+  <li>🟢 <strong>Monitoring is ON</strong> - we're tracking price changes</li>
+  <li>⚫ <strong>Monitoring is OFF</strong> - click the eye icon to enable automated tracking</li>
+  <li>🔒 <strong>Set a minimum price</strong> when first enabling monitoring to protect your margins</li>
+</ul>
 
-Once you complete these steps, our system will automatically track price changes and help optimize your offers for better performance.
+<p>Once you complete these steps, our system will automatically track price changes and help optimize your offers for better performance.</p>
 
-Need help getting started? Our support team is here to assist you!`
+<p>Need help getting started? Our support team is here to assist you!</p>
+
+<p>Best regards,<br>
+<strong>The SalesPath Team</strong></p>`
     },
     "subscription_reminder": {
       subject: "Your SalesPath Subscription Status",
-      body: `Hi {{name}},
+      body: `<p>Hi {{name}},</p>
 
-We're reaching out regarding your SalesPath subscription for {{businessName}}.
+<p>We're reaching out regarding your SalesPath subscription for <strong>{{businessName}}</strong>.</p>
 
-Current Status: {{status}}
+<p><strong>Current Status:</strong> {{status}}</p>
 
-If you have any questions or need assistance, please don't hesitate to reach out to our support team.`
+<p>If you have any questions or need assistance, please don't hesitate to reach out to our support team.</p>
+
+<p>Best regards,<br>
+<strong>The SalesPath Team</strong></p>`
     },
     "plan_upgrade": {
       subject: "Upgrade Your SalesPath Plan",
-      body: `Hi {{name}},
+      body: `<p>Hi {{name}},</p>
 
-We noticed that {{businessName}} is approaching its plan limits.
+<p>We noticed that <strong>{{businessName}}</strong> is approaching its plan limits.</p>
 
-You're currently using a high percentage of your plan's capacity. Consider upgrading to continue monitoring more offers without interruption.`
+<p>You're currently using a high percentage of your plan's capacity. Consider upgrading to continue monitoring more offers without interruption.</p>
+
+<p>Best regards,<br>
+<strong>The SalesPath Team</strong></p>`
     },
     "inactive_monitoring": {
       subject: "Reactivate Your SalesPath Monitoring",
-      body: `Hi {{name}},
+      body: `<p>Hi {{name}},</p>
 
-We noticed that monitoring for {{businessName}} has been inactive.
+<p>We noticed that monitoring for <strong>{{businessName}}</strong> has been inactive.</p>
 
-Your subscription status is currently {{status}}. To resume price monitoring and optimization, please update your subscription.`
+<p>Your subscription status is currently <strong>{{status}}</strong>. To resume price monitoring and optimization, please update your subscription.</p>
+
+<p>Best regards,<br>
+<strong>The SalesPath Team</strong></p>`
     },
     "custom": {
       subject: "",
