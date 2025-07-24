@@ -26,110 +26,107 @@ export async function GET() {
       );
     }
 
-    // Fetch businesses with related data
-    const businesses = await prisma.business.findMany({
-      include: {
-        owner: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-        subscription: {
-          include: {
-            plan: {
-              select: {
-                id: true,
-                name: true,
-                maxOffers: true,
-              },
-            },
-          },
-        },
-        _count: {
-          select: {
-            monitoredOffers: {
-              where: {
-                isMonitored: true,  // Only count actively monitored offers
-              },
-            },
-          },
-        },
-        monitoredOffers: {
-          where: {
-            isMonitored: true,  // Only count actively monitored offers
-          },
-          select: {
-            id: true,
-            minPrice: true,
-            lastMonitored: true,
-            offerDto: {
-              select: {
-                inBuyBox: true,
-                sellingPrice: true,
-              },
-            },
-          },
-        },
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
+    // 🚀 OPTIMIZED: Use raw SQL for better performance with proper typing
+    interface BusinessStatsRow {
+      id: string;
+      name: string;
+      createdAt: Date;
+      ownerId: string | null;
+      ownerName: string | null;
+      ownerEmail: string | null;
+      subscriptionId: string | null;
+      subscriptionStatus: string | null;
+      nextBillingDate: Date | null;
+      planId: string | null;
+      planName: string | null;
+      maxOffers: number | null;
+      planPrice: number | null;
+      totalMonitoredOffers: number;
+      reachedMinPrice: number;
+      currentlyMonitored: number;
+      inBuyBox: number;
+      lastActivity: Date | null;
+    }
 
-    // Process the data to calculate monitoring stats
-    const businessesWithStats = businesses.map(business => {
-      const allOffers = business.monitoredOffers;
-      
-      // Separate offers at minimum price (successful but no longer optimizable)
-      const atMinPrice = allOffers.filter(offer => {
-        if (!offer.minPrice || !offer.offerDto.sellingPrice) return false;
-        return offer.offerDto.sellingPrice <= offer.minPrice;
-      }).length;
+    const businessesWithStats = await prisma.$queryRaw<BusinessStatsRow[]>`
+      SELECT 
+        b.id,
+        b.name,
+        b."createdAt",
+        -- Owner info
+        u.id as "ownerId",
+        u.name as "ownerName", 
+        u.email as "ownerEmail",
+        -- Subscription info
+        s.id as "subscriptionId",
+        s.status as "subscriptionStatus",
+        s."nextBillingDate",
+        p.id as "planId",
+        p.name as "planName",
+        p."maxOffers",
+        p.price as "planPrice",
+        -- Aggregated stats (calculated in DB, not client)
+        COUNT(CASE WHEN lo."isMonitored" = true THEN 1 END)::int as "totalMonitoredOffers",
+        COUNT(CASE WHEN lo."isMonitored" = true AND lo."minPrice" IS NOT NULL 
+                   AND od."sellingPrice" <= lo."minPrice" THEN 1 END)::int as "reachedMinPrice",
+        COUNT(CASE WHEN lo."isMonitored" = true AND (lo."minPrice" IS NULL 
+                   OR od."sellingPrice" > lo."minPrice") THEN 1 END)::int as "currentlyMonitored",
+        COUNT(CASE WHEN lo."isMonitored" = true AND (lo."minPrice" IS NULL 
+                   OR od."sellingPrice" > lo."minPrice") AND od."inBuyBox" = true THEN 1 END)::int as "inBuyBox",
+        MAX(lo."lastMonitored") as "lastActivity"
+      FROM "Business" b
+      LEFT JOIN "User" u ON b."ownerId" = u.id
+      LEFT JOIN "Subscription" s ON b.id = s."businessId"
+      LEFT JOIN "Plan" p ON s."planId" = p.id
+      LEFT JOIN "LocalOffer" lo ON b.id = lo."businessId"
+      LEFT JOIN "OfferDTO" od ON lo."offerDtoId" = od.id
+      GROUP BY b.id, b.name, b."createdAt", u.id, u.name, u.email, 
+               s.id, s.status, s."nextBillingDate", p.id, p.name, p."maxOffers", p.price
+      ORDER BY b."createdAt" DESC
+    `;
 
-      // Currently monitored offers = those we can still optimize (above min price)
-      const currentlyMonitored = allOffers.filter(offer => {
-        if (!offer.minPrice || !offer.offerDto.sellingPrice) return true;
-        return offer.offerDto.sellingPrice > offer.minPrice;
-      });
-
-      // Calculate stats from currently monitored offers only
-      const totalMonitored = currentlyMonitored.length;
-      const inBuyBox = currentlyMonitored.filter(offer => offer.offerDto.inBuyBox).length;
-      const notInBuyBox = totalMonitored - inBuyBox;
-
-      // Plan utilization based on all tracked offers
-      const planLimit = business.subscription?.plan.maxOffers || 0;
-      const planUtilization = planLimit > 0 ? (allOffers.length / planLimit) * 100 : 0;
-
-      // Last activity from currently monitored offers
-      const lastMonitoredDates = currentlyMonitored
-        .map(offer => offer.lastMonitored)
-        .filter(date => date !== null)
-        .sort((a, b) => new Date(b!).getTime() - new Date(a!).getTime());
-      
-      const lastActivity = lastMonitoredDates.length > 0 ? lastMonitoredDates[0] : null;
+    // 🚀 OPTIMIZED: Minimal client-side processing
+    const processedBusinesses = businessesWithStats.map((row) => {
+      const totalOffers = (row.currentlyMonitored || 0) + (row.reachedMinPrice || 0);
+      const planLimit = row.maxOffers || 0;
+      const planUtilization = planLimit > 0 ? Math.min((totalOffers / planLimit) * 100, 100) : 0;
+      const notInBuyBox = (row.currentlyMonitored || 0) - (row.inBuyBox || 0);
 
       return {
-        id: business.id,
-        name: business.name,
-        owner: business.owner,
-        subscription: business.subscription,
-        createdAt: business.createdAt,
-        _count: business._count,
-        monitoringStats: {
-          totalMonitored,        // 454 - offers we can still optimize
-          inBuyBox,             // from currently monitored offers
-          notInBuyBox,          // from currently monitored offers  
-          reachedMinPrice: atMinPrice,  // 393 - offers at minimum price
-          planUtilization: Math.min(planUtilization, 100),
+        id: row.id,
+        name: row.name,
+        createdAt: row.createdAt,
+        owner: {
+          id: row.ownerId,
+          name: row.ownerName,
+          email: row.ownerEmail,
         },
-        lastActivity,
+        subscription: row.subscriptionId ? {
+          id: row.subscriptionId,
+          status: row.subscriptionStatus,
+          nextBillingDate: row.nextBillingDate,
+          plan: {
+            id: row.planId,
+            name: row.planName,
+            maxOffers: row.maxOffers,
+            price: row.planPrice,
+          },
+        } : null,
+        _count: {
+          monitoredOffers: row.totalMonitoredOffers || 0,
+        },
+        monitoringStats: {
+          totalMonitored: row.currentlyMonitored || 0,
+          inBuyBox: row.inBuyBox || 0,
+          notInBuyBox: Math.max(notInBuyBox, 0),
+          reachedMinPrice: row.reachedMinPrice || 0,
+          planUtilization,
+        },
+        lastActivity: row.lastActivity,
       };
     });
 
-    return NextResponse.json(businessesWithStats);
+    return NextResponse.json(processedBusinesses);
 
   } catch (error) {
     console.error('Error fetching business monitoring data:', error);

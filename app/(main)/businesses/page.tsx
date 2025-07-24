@@ -19,6 +19,8 @@ import {
   DropdownMenu,
   DropdownItem,
   Textarea,
+  Tabs,
+  Tab,
 } from "@nextui-org/react"
 import {
   Search,
@@ -36,8 +38,10 @@ import {
   Mail,
   Calendar,
   Send,
+  CreditCard,
 } from "lucide-react"
-import { format } from "date-fns"
+import { format, addMonths } from "date-fns"
+import { Plan, SubscriptionStatus } from '@prisma/client'
 
 interface BusinessMonitoring {
   id: string
@@ -47,10 +51,14 @@ interface BusinessMonitoring {
     email: string
   }
   subscription: {
+    id: string
     status: string
+    nextBillingDate: string | null
     plan: {
+      id: string
       name: string
       maxOffers: number
+      price: number
     }
   } | null
   _count: {
@@ -81,80 +89,287 @@ interface EditBusinessModalProps {
   onClose: () => void
   business: BusinessMonitoring | null
   onUpdate: (businessId: string, data: { name: string; ownerEmail: string }) => Promise<void>
+  onUpdateSubscription: (businessId: string, data: { 
+    status: SubscriptionStatus; 
+    nextBillingDate: string; 
+    planId: string 
+  }) => Promise<void>
 }
 
-const EditBusinessModal = ({ isOpen, onClose, business, onUpdate }: EditBusinessModalProps) => {
+const EditBusinessModal = ({ isOpen, onClose, business, onUpdate, onUpdateSubscription }: EditBusinessModalProps) => {
+  // Business Edit State
   const [name, setName] = useState("")
   const [ownerEmail, setOwnerEmail] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
+  const [isBusinessLoading, setIsBusinessLoading] = useState(false)
+
+  // Subscription Edit State
+  const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus>(SubscriptionStatus.ACTIVE)
+  const [nextBillingDate, setNextBillingDate] = useState<string>('')
+  const [selectedPlanId, setSelectedPlanId] = useState<string>('')
+  const [plans, setPlans] = useState<Plan[]>([])
+  const [isSubscriptionLoading, setIsSubscriptionLoading] = useState(false)
+
+  // Tab State
+  const [selectedTab, setSelectedTab] = useState("business")
 
   useEffect(() => {
     if (business) {
+      // Initialize business data
       setName(business.name)
       setOwnerEmail(business.owner.email)
+      
+      // Initialize subscription data
+      if (business.subscription) {
+        setSubscriptionStatus(business.subscription.status as SubscriptionStatus)
+        setSelectedPlanId(business.subscription.plan.id)
+        setNextBillingDate(business.subscription.nextBillingDate ? 
+          new Date(business.subscription.nextBillingDate).toISOString().split('T')[0] : 
+          new Date().toISOString().split('T')[0]
+        )
+      }
     }
   }, [business])
 
-  const handleSubmit = async () => {
+  useEffect(() => {
+    if (isOpen) {
+      fetchPlans()
+    }
+  }, [isOpen])
+
+  const fetchPlans = async () => {
+    try {
+      const response = await fetch('/api/plans')
+      if (!response.ok) throw new Error('Failed to fetch plans')
+      const data = await response.json()
+      setPlans(data)
+    } catch (error) {
+      console.error('Error fetching plans:', error)
+    }
+  }
+
+  const handleBusinessUpdate = async () => {
     if (!business) return
-    setIsLoading(true)
+    
+    setIsBusinessLoading(true)
     try {
       await onUpdate(business.id, { name, ownerEmail })
-      onClose()
     } catch (error) {
       console.error("Error updating business:", error)
     } finally {
-      setIsLoading(false)
+      setIsBusinessLoading(false)
     }
+  }
+
+  const handleSubscriptionUpdate = async () => {
+    if (!business || !business.subscription) return
+    
+    setIsSubscriptionLoading(true)
+    try {
+      await onUpdateSubscription(business.id, {
+        status: subscriptionStatus,
+        nextBillingDate,
+        planId: selectedPlanId
+      })
+    } catch (error) {
+      console.error("Error updating subscription:", error)
+    } finally {
+      setIsSubscriptionLoading(false)
+    }
+  }
+
+  const handleSetNextMonth = () => {
+    setNextBillingDate(prev => {
+      const currentDate = prev ? new Date(prev) : new Date()
+      const nextMonth = addMonths(currentDate, 1)
+      return nextMonth.toISOString().split('T')[0]
+    })
   }
 
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      size="md"
+      size="2xl"
       classNames={{
         base: "mx-4",
         backdrop: "bg-black/50 backdrop-blur-sm",
       }}
     >
       <ModalContent>
-        <ModalHeader className="flex flex-col gap-1 text-xl font-semibold">Edit Business</ModalHeader>
+        <ModalHeader className="flex flex-col gap-1">
+          <span className="text-xl font-semibold">Edit {business?.name}</span>
+          <p className="text-sm text-default-500 font-normal">
+            Manage business details and subscription settings
+          </p>
+        </ModalHeader>
         <ModalBody>
-          <div className="space-y-6">
-            <Input
-              label="Business Name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Enter business name"
-              variant="bordered"
-            />
-            <Input
-              label="Owner Email"
-              type="email"
-              value={ownerEmail}
-              onChange={(e) => setOwnerEmail(e.target.value)}
-              placeholder="Enter owner email"
-              variant="bordered"
-            />
-            <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl">
-              <p className="text-sm text-blue-800">
-                <strong>Note:</strong> Changing the owner email will transfer the business to that user account.
-              </p>
-            </div>
-          </div>
+          <Tabs 
+            selectedKey={selectedTab} 
+            onSelectionChange={(key) => setSelectedTab(key.toString())}
+            className="w-full"
+          >
+            <Tab 
+              key="business" 
+              title={
+                <div className="flex items-center gap-2">
+                  <Building2 className="w-4 h-4" />
+                  <span>Business Details</span>
+                </div>
+              }
+            >
+              <Card className="p-4 mt-4">
+                <div className="space-y-6">
+                  <Input
+                    label="Business Name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Enter business name"
+                    variant="bordered"
+                  />
+                  
+                  <Input
+                    label="Owner Email"
+                    type="email"
+                    value={ownerEmail}
+                    onChange={(e) => setOwnerEmail(e.target.value)}
+                    placeholder="Enter owner email"
+                    variant="bordered"
+                  />
+                  
+                  <div className="p-4 bg-default-50 border border-default-200 rounded-xl">
+                    <p className="text-sm text-default-700">
+                      <strong>Note:</strong> Changing the owner email will transfer the business to that user account.
+                    </p>
+                  </div>
+
+                  <Button
+                    color="primary"
+                    onPress={handleBusinessUpdate}
+                    isLoading={isBusinessLoading}
+                    isDisabled={!name.trim() || !ownerEmail.trim()}
+                    className="w-full"
+                  >
+                    Update Business Details
+                  </Button>
+                </div>
+              </Card>
+            </Tab>
+
+            <Tab 
+              key="subscription" 
+              title={
+                <div className="flex items-center gap-2">
+                  <CreditCard className="w-4 h-4" />
+                  <span>Subscription</span>
+                </div>
+              }
+            >
+              <Card className="p-4 mt-4">
+                <div className="space-y-6">
+                  {!business?.subscription ? (
+                    <div className="text-center p-6 bg-warning-50 border border-warning-200 rounded-xl">
+                      <p className="text-warning-800 font-medium">No Subscription Found</p>
+                      <p className="text-sm text-warning-700 mt-1">
+                        This business doesn't have an active subscription.
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <Select
+                        label="Subscription Plan"
+                        selectedKeys={selectedPlanId ? [selectedPlanId] : []}
+                        onChange={(e) => setSelectedPlanId(e.target.value)}
+                        variant="bordered"
+                      >
+                        {plans.map((plan) => (
+                          <SelectItem key={plan.id} value={plan.id}>
+                            {plan.name} ({plan.maxOffers} offers - ${plan.price})
+                          </SelectItem>
+                        ))}
+                      </Select>
+
+                      {selectedPlanId !== business.subscription.plan.id && (
+                        <div className="p-3 bg-warning-50 border border-warning-200 rounded-xl">
+                          <p className="text-sm text-warning-800">
+                            <strong>Warning:</strong> Changing plans may affect monitored offers.
+                          </p>
+                        </div>
+                      )}
+
+                      <Select
+                        label="Subscription Status"
+                        selectedKeys={[subscriptionStatus]}
+                        onChange={(e) => setSubscriptionStatus(e.target.value as SubscriptionStatus)}
+                        variant="bordered"
+                      >
+                        {Object.values(SubscriptionStatus).map((status) => (
+                          <SelectItem key={status} value={status}>
+                            {status}
+                          </SelectItem>
+                        ))}
+                      </Select>
+
+                      <div>
+                        <p className="text-sm text-default-600 mb-3">Next Billing Date</p>
+                        <div className="flex gap-2">
+                          <input
+                            type="date"
+                            className="flex-1 p-3 border border-default-300 rounded-lg bg-default-50"
+                            value={nextBillingDate}
+                            onChange={(e) => setNextBillingDate(e.target.value)}
+                          />
+                          <Button
+                            size="lg"
+                            variant="bordered"
+                            onClick={handleSetNextMonth}
+                            startContent={<Calendar className="w-4 h-4" />}
+                          >
+                            Next Month
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* Current Subscription Info */}
+                      <div className="p-4 bg-default-50 border border-default-200 rounded-xl">
+                        <h4 className="font-medium text-default-800 mb-3">Current Subscription</h4>
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <p className="text-default-600">Plan</p>
+                            <p className="font-medium">{business.subscription.plan.name}</p>
+                          </div>
+                          <div>
+                            <p className="text-default-600">Status</p>
+                            <p className="font-medium">{business.subscription.status}</p>
+                          </div>
+                          <div>
+                            <p className="text-default-600">Max Offers</p>
+                            <p className="font-medium">{business.subscription.plan.maxOffers}</p>
+                          </div>
+                          <div>
+                            <p className="text-default-600">Utilization</p>
+                            <p className="font-medium">{business.monitoringStats.planUtilization.toFixed(1)}%</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <Button
+                        color="primary"
+                        onPress={handleSubscriptionUpdate}
+                        isLoading={isSubscriptionLoading}
+                        className="w-full"
+                      >
+                        Update Subscription
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </Card>
+            </Tab>
+          </Tabs>
         </ModalBody>
         <ModalFooter>
           <Button color="danger" variant="light" onPress={onClose}>
-            Cancel
-          </Button>
-          <Button
-            color="primary"
-            onPress={handleSubmit}
-            isLoading={isLoading}
-            isDisabled={!name.trim() || !ownerEmail.trim()}
-          >
-            Update Business
+            Close
           </Button>
         </ModalFooter>
       </ModalContent>
@@ -318,7 +533,6 @@ const EmailBusinessModal = ({ isOpen, onClose, business, onSendEmail }: EmailBus
 
   useEffect(() => {
     if (business) {
-      // Reset form when business changes
       setSubject("")
       setEmailBody("")
       setShowSuccessAlert(false)
@@ -329,7 +543,7 @@ const EmailBusinessModal = ({ isOpen, onClose, business, onSendEmail }: EmailBus
     if (showSuccessAlert) {
       const timer = setTimeout(() => {
         setShowSuccessAlert(false)
-      }, 5000) // Hide after 5 seconds
+      }, 5000)
       return () => clearTimeout(timer)
     }
   }, [showSuccessAlert])
@@ -351,7 +565,6 @@ const EmailBusinessModal = ({ isOpen, onClose, business, onSendEmail }: EmailBus
       setShowSuccessAlert(true)
       setSubject("")
       setEmailBody("")
-      // Don't close immediately, let user see success message
       setTimeout(() => {
         onClose()
       }, 2000)
@@ -384,7 +597,6 @@ const EmailBusinessModal = ({ isOpen, onClose, business, onSendEmail }: EmailBus
         </ModalHeader>
         <ModalBody>
           <div className="space-y-6">
-            {/* Success Alert */}
             {showSuccessAlert && (
               <div className="p-4 bg-success-50 border border-success-200 rounded-xl">
                 <div className="flex items-center gap-2">
@@ -513,14 +725,18 @@ const BusinessCard = ({
           </DropdownTrigger>
           <DropdownMenu>
             <DropdownItem 
+              key="edit" 
+              startContent={<Edit className="w-4 h-4" />} 
+              onClick={() => onEdit(business)}
+            >
+              Edit Business & Subscription
+            </DropdownItem>
+            <DropdownItem 
               key="email" 
               startContent={<Mail className="w-4 h-4" />} 
               onClick={() => onEmail(business)}
             >
               Send Email
-            </DropdownItem>
-            <DropdownItem key="edit" startContent={<Edit className="w-4 h-4" />} onClick={() => onEdit(business)}>
-              Edit Business
             </DropdownItem>
             <DropdownItem
               key="delete"
@@ -740,6 +956,34 @@ export default function BusinessMonitoringPage() {
     }
   }
 
+  const handleUpdateSubscription = async (businessId: string, data: { 
+    status: SubscriptionStatus; 
+    nextBillingDate: string; 
+    planId: string 
+  }) => {
+    try {
+      const business = businesses.find(b => b.id === businessId)
+      if (!business?.subscription?.id) {
+        throw new Error("No subscription found for this business")
+      }
+
+      const response = await fetch(`/api/subscriptions/${business.subscription.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          status: data.status,
+          nextBillingDate: data.nextBillingDate,
+          planId: data.planId
+        }),
+      })
+      if (!response.ok) throw new Error("Failed to update subscription")
+      await fetchBusinessMonitoring()
+    } catch (error) {
+      console.error("Error updating subscription:", error)
+      throw error
+    }
+  }
+
   const handleDeleteBusiness = async (businessId: string) => {
     try {
       const response = await fetch(`/api/admin/businesses/${businessId}`, { method: "DELETE" })
@@ -768,7 +1012,6 @@ export default function BusinessMonitoringPage() {
         throw new Error('Failed to send email')
       }
 
-      // You could show a success toast here
       console.log('Email sent successfully')
     } catch (error) {
       console.error('Error sending email:', error)
@@ -980,6 +1223,7 @@ export default function BusinessMonitoringPage() {
           onClose={editModal.onClose}
           business={selectedBusiness}
           onUpdate={handleUpdateBusiness}
+          onUpdateSubscription={handleUpdateSubscription}
         />
 
         <DeleteBusinessModal

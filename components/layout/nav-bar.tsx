@@ -55,20 +55,12 @@ export default function AdminNavbar() {
               Dashboard
             </DropdownItem>
             <DropdownItem
-              key="business-monitoring"
+              key="businesses"
               startContent={<BarChart3 size={16} />}
               as={Link}
-              href="/monitoring"
+              href="/businesses"
             >
-              Business Monitoring
-            </DropdownItem>
-            <DropdownItem
-              key="subscriptions"
-              startContent={<CreditCard size={16} />}
-              as={Link}
-              href="/subscriptions"
-            >
-              Subscriptions
+              Businesses
             </DropdownItem>
             <DropdownItem
               key="email"
