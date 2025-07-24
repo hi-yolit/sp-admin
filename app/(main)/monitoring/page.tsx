@@ -18,6 +18,7 @@ import {
   DropdownTrigger,
   DropdownMenu,
   DropdownItem,
+  Textarea,
 } from "@nextui-org/react"
 import {
   Search,
@@ -34,6 +35,7 @@ import {
   Filter,
   Mail,
   Calendar,
+  Send,
 } from "lucide-react"
 import { format } from "date-fns"
 
@@ -234,14 +236,212 @@ const DeleteBusinessModal = ({ isOpen, onClose, business, onDelete }: DeleteBusi
   )
 }
 
+interface EmailBusinessModalProps {
+  isOpen: boolean
+  onClose: () => void
+  business: BusinessMonitoring | null
+  onSendEmail: (businessId: string, subject: string, body: string) => Promise<void>
+}
+
+const EmailBusinessModal = ({ isOpen, onClose, business, onSendEmail }: EmailBusinessModalProps) => {
+  const [subject, setSubject] = useState("")
+  const [emailBody, setEmailBody] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
+
+  // Email templates
+  const templates = {
+    "start_monitoring": {
+      subject: "Start Monitoring Your Offers with SalesPath",
+      body: `Hi {{name}},
+
+Great news! Your SalesPath subscription for {{businessName}} is active, but we noticed you haven't started monitoring any offers yet.
+
+Here's how to get started with offer monitoring:
+
+👁️ **Step 1: Enable Monitoring**
+   • Go to your "Offers" tab
+   • Find the product you want to monitor
+   • Click the eye icon next to the offer
+
+📝 **Step 2: Set Minimum Price**
+   • A popup will appear asking for your minimum price
+   • Set this to protect your profit margins
+   • Click confirm to start monitoring
+
+🎯 **How Offer Monitoring Works:**
+   • 🟢 Monitoring is ON - we're tracking price changes
+   • ⚫ Monitoring is OFF - click the eye icon to enable automated tracking
+   • 🔒 Set a minimum price when first enabling monitoring to protect your margins
+
+Once you complete these steps, our system will automatically track price changes and help optimize your offers for better performance.
+
+Need help getting started? Our support team is here to assist you!`
+    },
+    "subscription_reminder": {
+      subject: "Your SalesPath Subscription Status",
+      body: `Hi {{name}},
+
+We're reaching out regarding your SalesPath subscription for {{businessName}}.
+
+Current Status: {{status}}
+
+If you have any questions or need assistance, please don't hesitate to reach out to our support team.`
+    },
+    "plan_upgrade": {
+      subject: "Upgrade Your SalesPath Plan",
+      body: `Hi {{name}},
+
+We noticed that {{businessName}} is approaching its plan limits.
+
+You're currently using a high percentage of your plan's capacity. Consider upgrading to continue monitoring more offers without interruption.`
+    },
+    "inactive_monitoring": {
+      subject: "Reactivate Your SalesPath Monitoring",
+      body: `Hi {{name}},
+
+We noticed that monitoring for {{businessName}} has been inactive.
+
+Your subscription status is currently {{status}}. To resume price monitoring and optimization, please update your subscription.`
+    },
+    "custom": {
+      subject: "",
+      body: ""
+    }
+  }
+
+  useEffect(() => {
+    if (business) {
+      // Reset form when business changes
+      setSubject("")
+      setEmailBody("")
+    }
+  }, [business])
+
+  const handleTemplateChange = (templateKey: string) => {
+    const template = templates[templateKey as keyof typeof templates]
+    if (template) {
+      setSubject(template.subject)
+      setEmailBody(template.body)
+    }
+  }
+
+  const handleSubmit = async () => {
+    if (!business || !subject.trim() || !emailBody.trim()) return
+    
+    setIsLoading(true)
+    try {
+      await onSendEmail(business.id, subject, emailBody)
+      onClose()
+      setSubject("")
+      setEmailBody("")
+    } catch (error) {
+      console.error("Error sending email:", error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      size="2xl"
+      classNames={{
+        base: "mx-4",
+        backdrop: "bg-black/50 backdrop-blur-sm",
+      }}
+    >
+      <ModalContent>
+        <ModalHeader className="flex flex-col gap-1">
+          <div className="flex items-center gap-2">
+            <Mail className="w-5 h-5 text-blue-600" />
+            <span className="text-xl font-semibold">Send Email to {business?.name}</span>
+          </div>
+          <p className="text-sm text-gray-600 font-normal">
+            Email will be sent to: {business?.owner.email}
+          </p>
+        </ModalHeader>
+        <ModalBody>
+          <div className="space-y-6">
+            <Select
+              label="Email Template"
+              placeholder="Choose a template or create custom email"
+              onChange={(e) => handleTemplateChange(e.target.value)}
+              variant="bordered"
+            >
+              <SelectItem key="start_monitoring" value="start_monitoring">
+                How to Start Monitoring (Active/Trial with no monitoring)
+              </SelectItem>
+              <SelectItem key="subscription_reminder" value="subscription_reminder">
+                Subscription Reminder
+              </SelectItem>
+              <SelectItem key="plan_upgrade" value="plan_upgrade">
+                Plan Upgrade Suggestion
+              </SelectItem>
+              <SelectItem key="inactive_monitoring" value="inactive_monitoring">
+                Inactive Monitoring Alert
+              </SelectItem>
+              <SelectItem key="custom" value="custom">
+                Custom Email
+              </SelectItem>
+            </Select>
+
+            <Input
+              label="Subject"
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+              placeholder="Enter email subject"
+              variant="bordered"
+            />
+
+            <Textarea
+              label="Message"
+              value={emailBody}
+              onChange={(e) => setEmailBody(e.target.value)}
+              placeholder="Enter your message"
+              minRows={8}
+              variant="bordered"
+            />
+
+            <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl">
+              <p className="text-sm text-blue-800 font-medium mb-2">Available Variables:</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-blue-700">
+                <div>• <code>{"{{name}}"}</code> - Owner's name</div>
+                <div>• <code>{"{{businessName}}"}</code> - Business name</div>
+                <div>• <code>{"{{status}}"}</code> - Subscription status</div>
+              </div>
+            </div>
+          </div>
+        </ModalBody>
+        <ModalFooter>
+          <Button color="danger" variant="light" onPress={onClose}>
+            Cancel
+          </Button>
+          <Button
+            color="primary"
+            onPress={handleSubmit}
+            isLoading={isLoading}
+            isDisabled={!subject.trim() || !emailBody.trim()}
+            startContent={<Send className="w-4 h-4" />}
+          >
+            Send Email
+          </Button>
+        </ModalFooter>
+      </ModalContent>
+    </Modal>
+  )
+}
+
 const BusinessCard = ({
   business,
   onEdit,
   onDelete,
+  onEmail,
 }: {
   business: BusinessMonitoring
   onEdit: (business: BusinessMonitoring) => void
   onDelete: (business: BusinessMonitoring) => void
+  onEmail: (business: BusinessMonitoring) => void
 }) => {
   const stats = business.monitoringStats
   const subscription = business.subscription
@@ -276,6 +476,13 @@ const BusinessCard = ({
             </Button>
           </DropdownTrigger>
           <DropdownMenu>
+            <DropdownItem 
+              key="email" 
+              startContent={<Mail className="w-4 h-4" />} 
+              onClick={() => onEmail(business)}
+            >
+              Send Email
+            </DropdownItem>
             <DropdownItem key="edit" startContent={<Edit className="w-4 h-4" />} onClick={() => onEdit(business)}>
               Edit Business
             </DropdownItem>
@@ -373,6 +580,7 @@ export default function BusinessMonitoringPage() {
 
   const editModal = useDisclosure()
   const deleteModal = useDisclosure()
+  const emailModal = useDisclosure()
 
   useEffect(() => {
     fetchBusinessMonitoring()
@@ -476,6 +684,11 @@ export default function BusinessMonitoringPage() {
     deleteModal.onOpen()
   }
 
+  const handleEmail = (business: BusinessMonitoring) => {
+    setSelectedBusiness(business)
+    emailModal.onOpen()
+  }
+
   const handleUpdateBusiness = async (businessId: string, data: { name: string; ownerEmail: string }) => {
     try {
       const response = await fetch(`/api/admin/businesses/${businessId}`, {
@@ -498,6 +711,31 @@ export default function BusinessMonitoringPage() {
       await fetchBusinessMonitoring()
     } catch (error) {
       console.error("Error deleting business:", error)
+      throw error
+    }
+  }
+
+  const handleSendEmail = async (businessId: string, subject: string, body: string) => {
+    try {
+      const response = await fetch('/api/email/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: "businesses",
+          recipientIds: [businessId],
+          subject,
+          body,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to send email')
+      }
+
+      // You could show a success toast here
+      console.log('Email sent successfully')
+    } catch (error) {
+      console.error('Error sending email:', error)
       throw error
     }
   }
@@ -676,7 +914,13 @@ export default function BusinessMonitoringPage() {
         {/* Business Cards */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {filteredBusinesses.map((business) => (
-            <BusinessCard key={business.id} business={business} onEdit={handleEdit} onDelete={handleDelete} />
+            <BusinessCard 
+              key={business.id} 
+              business={business} 
+              onEdit={handleEdit} 
+              onDelete={handleDelete}
+              onEmail={handleEmail}
+            />
           ))}
         </div>
 
@@ -707,6 +951,13 @@ export default function BusinessMonitoringPage() {
           onClose={deleteModal.onClose}
           business={selectedBusiness}
           onDelete={handleDeleteBusiness}
+        />
+
+        <EmailBusinessModal
+          isOpen={emailModal.isOpen}
+          onClose={emailModal.onClose}
+          business={selectedBusiness}
+          onSendEmail={handleSendEmail}
         />
       </div>
     </div>
