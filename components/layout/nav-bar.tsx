@@ -13,7 +13,7 @@ import {
   DropdownItem,
   Avatar,
 } from "@nextui-org/react";
-import { LogOut, CreditCard, Home, Mail, BarChart3 } from "lucide-react";
+import { LogOut, Home, Mail, BarChart3 } from "lucide-react";
 
 export default function AdminNavbar() {
   const { data: session } = useSession();
