@@ -270,7 +270,7 @@ const EditBusinessModal = ({ isOpen, onClose, business, onUpdate, onUpdateSubscr
                     <div className="text-center p-6 bg-warning-50 border border-warning-200 rounded-xl">
                       <p className="text-warning-800 font-medium">No Subscription Found</p>
                       <p className="text-sm text-warning-700 mt-1">
-                        This business doesn&apos;t have an active subscription.
+                        This business doesn't have an active subscription.
                       </p>
                     </div>
                   ) : (
