@@ -1,3 +1,4 @@
+
 // app/businesses/monitoring/page.tsx
 'use client';
 
@@ -24,7 +25,7 @@ import {
   DropdownMenu,
   DropdownItem
 } from "@nextui-org/react";
-import { Search, Building2, Eye, ShoppingCart, DollarSign, ChevronDown, AlertTriangle, MoreVertical, Edit, Trash2 } from 'lucide-react';
+import { Search, Building2, Eye, ShoppingCart, DollarSign, ChevronDown, AlertTriangle, MoreVertical, Edit, Trash2, Users, Activity } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface BusinessMonitoring {
@@ -49,7 +50,7 @@ interface BusinessMonitoring {
     inBuyBox: number;
     notInBuyBox: number;
     reachedMinPrice: number;
-    planUtilization: number; // percentage of plan limit used
+    planUtilization: number;
   };
   lastActivity: string | null;
   createdAt: string;
@@ -125,8 +126,8 @@ const EditBusinessModal = ({ isOpen, onClose, business, onUpdate }: EditBusiness
           <Button color="danger" variant="light" onPress={onClose}>
             Cancel
           </Button>
-          <Button 
-            color="primary" 
+          <Button
+            color="primary"
             onPress={handleSubmit}
             isLoading={isLoading}
             isDisabled={!name.trim() || !ownerEmail.trim()}
@@ -186,7 +187,7 @@ const DeleteBusinessModal = ({ isOpen, onClose, business, onDelete }: DeleteBusi
                 <li>All associated data</li>
               </ul>
             </div>
-            
+
             <div>
               <p className="text-sm text-gray-600 mb-2">
                 To confirm deletion, type the business name: <strong>{business?.name}</strong>
@@ -204,8 +205,8 @@ const DeleteBusinessModal = ({ isOpen, onClose, business, onDelete }: DeleteBusi
           <Button color="default" variant="light" onPress={onClose}>
             Cancel
           </Button>
-          <Button 
-            color="danger" 
+          <Button
+            color="danger"
             onPress={handleDelete}
             isLoading={isLoading}
             isDisabled={!isDeleteEnabled}
@@ -218,24 +219,26 @@ const DeleteBusinessModal = ({ isOpen, onClose, business, onDelete }: DeleteBusi
   );
 };
 
-const BusinessCard = ({ 
-  business, 
-  onEdit, 
-  onDelete 
-}: { 
+const BusinessCard = ({
+  business,
+  onEdit,
+  onDelete
+}: {
   business: BusinessMonitoring;
   onEdit: (business: BusinessMonitoring) => void;
   onDelete: (business: BusinessMonitoring) => void;
 }) => {
   const stats = business.monitoringStats;
   const subscription = business.subscription;
-  const utilizationColor = stats.planUtilization >= 90 ? 'danger' : 
-                          stats.planUtilization >= 70 ? 'warning' : 'success';
+  const utilizationColor = stats.planUtilization >= 90 ? 'danger' :
+    stats.planUtilization >= 70 ? 'warning' : 'success';
+
+  // Check if subscription is active for monitoring
+  const isActivelyMonitored = subscription && ['ACTIVE', 'TRIAL'].includes(subscription.status);
 
   return (
     <Card className="mb-4">
       <div className="flex items-center justify-between p-2">
-        {/* Action Menu - positioned outside accordion */}
         <div className="flex-1">
           <Accordion>
             <AccordionItem
@@ -252,7 +255,12 @@ const BusinessCard = ({
                       {subscription.status}
                     </Chip>
                   )}
-                  {stats.planUtilization >= 90 && (
+                  {!isActivelyMonitored && (
+                    <Chip color="warning" variant="flat" size="sm">
+                      NOT MONITORED
+                    </Chip>
+                  )}
+                  {stats.planUtilization >= 90 && isActivelyMonitored && (
                     <AlertTriangle className="w-4 h-4 text-warning" />
                   )}
                 </div>
@@ -267,9 +275,9 @@ const BusinessCard = ({
               }
               subtitle={
                 <div className="flex flex-wrap gap-2 text-xs text-gray-500 mt-1">
-                  <span>{stats.totalMonitored} monitored offers</span>
+                  <span>{stats.totalMonitored} {isActivelyMonitored ? 'actively monitored' : 'historical offers'}</span>
                   <span>•</span>
-                  <span>{stats.inBuyBox} in buy box</span>
+                  <span>{stats.inBuyBox} {isActivelyMonitored ? 'in buy box' : 'were in buy box'}</span>
                   <span>•</span>
                   <span>{stats.reachedMinPrice} at min price</span>
                 </div>
@@ -277,49 +285,77 @@ const BusinessCard = ({
               indicator={<ChevronDown className="w-4 h-4" />}
             >
               <CardBody className="px-2 py-4">
-                {/* Plan Utilization */}
-                <div className="mb-6">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-sm font-medium">Plan Utilization</span>
-                    <span className="text-sm text-gray-500">
-                      {stats.totalMonitored + stats.reachedMinPrice} / {subscription?.plan.maxOffers || 'No limit'}
-                    </span>
+                {/* Monitoring Status Alert */}
+                {!isActivelyMonitored && stats.totalMonitored > 0 && (
+                  <div className="mb-4 p-3 bg-warning-50 border border-warning-200 rounded-lg">
+                    <div className="flex items-center gap-2 mb-1">
+                      <AlertTriangle className="w-4 h-4 text-warning-600" />
+                      <span className="font-medium text-warning-800">Monitoring Inactive</span>
+                    </div>
+                    <p className="text-sm text-warning-700">
+                      Subscription is {subscription?.status || 'missing'}. Offers are not being actively monitored or optimized.
+                      The data below represents historical information.
+                    </p>
                   </div>
-                  <Progress
-                    value={stats.planUtilization}
-                    color={utilizationColor}
-                    size="sm"
-                    className="mb-1"
-                  />
-                  <p className="text-xs text-gray-500">
-                    {stats.planUtilization.toFixed(1)}% of {subscription?.plan.name || 'plan'} limit used
-                  </p>
-                </div>
+                )}
+
+                {/* Plan Utilization */}
+                {isActivelyMonitored && (
+                  <div className="mb-6">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-sm font-medium">Plan Utilization</span>
+                      <span className="text-sm text-gray-500">
+                        {stats.totalMonitored + stats.reachedMinPrice} / {subscription?.plan.maxOffers || 'No limit'}
+                      </span>
+                    </div>
+                    <Progress
+                      value={stats.planUtilization}
+                      color={utilizationColor}
+                      size="sm"
+                      className="mb-1"
+                    />
+                    <p className="text-xs text-gray-500">
+                      {stats.planUtilization.toFixed(1)}% of {subscription?.plan.name || 'plan'} limit used
+                    </p>
+                  </div>
+                )}
 
                 {/* Monitoring Stats Grid */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                  <div className="text-center p-3 bg-blue-50 rounded-lg">
+                  <div className={`text-center p-3 rounded-lg ${isActivelyMonitored ? 'bg-blue-50' : 'bg-gray-50'}`}>
                     <div className="flex items-center justify-center mb-1">
-                      <Eye className="w-4 h-4 text-blue-600 mr-1" />
+                      <Eye className={`w-4 h-4 mr-1 ${isActivelyMonitored ? 'text-blue-600' : 'text-gray-400'}`} />
                     </div>
-                    <p className="text-lg font-semibold text-blue-600">{stats.totalMonitored}</p>
-                    <p className="text-xs text-gray-600">Monitored</p>
+                    <p className={`text-lg font-semibold ${isActivelyMonitored ? 'text-blue-600' : 'text-gray-500'}`}>
+                      {stats.totalMonitored}
+                    </p>
+                    <p className="text-xs text-gray-600">
+                      {isActivelyMonitored ? 'Monitored' : 'Historical'}
+                    </p>
                   </div>
 
-                  <div className="text-center p-3 bg-green-50 rounded-lg">
+                  <div className={`text-center p-3 rounded-lg ${isActivelyMonitored ? 'bg-green-50' : 'bg-gray-50'}`}>
                     <div className="flex items-center justify-center mb-1">
-                      <ShoppingCart className="w-4 h-4 text-green-600 mr-1" />
+                      <ShoppingCart className={`w-4 h-4 mr-1 ${isActivelyMonitored ? 'text-green-600' : 'text-gray-400'}`} />
                     </div>
-                    <p className="text-lg font-semibold text-green-600">{stats.inBuyBox}</p>
-                    <p className="text-xs text-gray-600">In Buy Box</p>
+                    <p className={`text-lg font-semibold ${isActivelyMonitored ? 'text-green-600' : 'text-gray-500'}`}>
+                      {stats.inBuyBox}
+                    </p>
+                    <p className="text-xs text-gray-600">
+                      {isActivelyMonitored ? 'In Buy Box' : 'Were in Buy Box'}
+                    </p>
                   </div>
 
-                  <div className="text-center p-3 bg-red-50 rounded-lg">
+                  <div className={`text-center p-3 rounded-lg ${isActivelyMonitored ? 'bg-red-50' : 'bg-gray-50'}`}>
                     <div className="flex items-center justify-center mb-1">
-                      <ShoppingCart className="w-4 h-4 text-red-600 mr-1" />
+                      <ShoppingCart className={`w-4 h-4 mr-1 ${isActivelyMonitored ? 'text-red-600' : 'text-gray-400'}`} />
                     </div>
-                    <p className="text-lg font-semibold text-red-600">{stats.notInBuyBox}</p>
-                    <p className="text-xs text-gray-600">Not in Buy Box</p>
+                    <p className={`text-lg font-semibold ${isActivelyMonitored ? 'text-red-600' : 'text-gray-500'}`}>
+                      {stats.notInBuyBox}
+                    </p>
+                    <p className="text-xs text-gray-600">
+                      {isActivelyMonitored ? 'Not in Buy Box' : 'Were Not in Buy Box'}
+                    </p>
                   </div>
 
                   <div className="text-center p-3 bg-amber-50 rounded-lg">
@@ -352,7 +388,7 @@ const BusinessCard = ({
                   <div>
                     <p className="text-gray-500 mb-1">Last Activity</p>
                     <p className="font-medium">
-                      {business.lastActivity 
+                      {business.lastActivity
                         ? format(new Date(business.lastActivity), 'MMM d, yyyy')
                         : 'No activity'
                       }
@@ -366,15 +402,15 @@ const BusinessCard = ({
                     <h4 className="font-medium text-sm mb-2">Performance Insights</h4>
                     <div className="space-y-1 text-xs text-gray-600">
                       <p>
-                        • Buy Box Success: {stats.totalMonitored > 0 ? (stats.inBuyBox / stats.totalMonitored * 100).toFixed(1) : 0}% of monitored offers
+                        • Buy Box Success: {stats.totalMonitored > 0 ? (stats.inBuyBox / stats.totalMonitored * 100).toFixed(1) : 0}% of {isActivelyMonitored ? 'monitored' : 'historical'} offers
                       </p>
                       <p>
                         • Min Price Reached: {stats.reachedMinPrice} offers no longer being optimized
                       </p>
                       <p>
-                        • Total Offers: {stats.totalMonitored + stats.reachedMinPrice} ({stats.totalMonitored} monitored + {stats.reachedMinPrice} at min price)
+                        • Total Offers: {stats.totalMonitored + stats.reachedMinPrice} ({stats.totalMonitored} {isActivelyMonitored ? 'monitored' : 'historical'} + {stats.reachedMinPrice} at min price)
                       </p>
-                      {stats.planUtilization >= 90 && (
+                      {stats.planUtilization >= 90 && isActivelyMonitored && (
                         <p className="text-warning">
                           • ⚠️ Approaching plan limit - consider upgrading
                         </p>
@@ -384,6 +420,11 @@ const BusinessCard = ({
                           • ⚠️ Active subscription but no monitored offers
                         </p>
                       )}
+                      {!isActivelyMonitored && stats.totalMonitored > 0 && (
+                        <p className="text-warning">
+                          • ⚠️ Historical data only - not currently monitored
+                        </p>
+                      )}
                     </div>
                   </div>
                 )}
@@ -391,8 +432,8 @@ const BusinessCard = ({
             </AccordionItem>
           </Accordion>
         </div>
-        
-        {/* Action Menu - positioned outside accordion to avoid button nesting */}
+
+        {/* Action Menu */}
         <div className="flex-shrink-0 ml-2">
           <Dropdown placement="bottom-end">
             <DropdownTrigger>
@@ -439,7 +480,7 @@ export default function BusinessMonitoringPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedBusiness, setSelectedBusiness] = useState<BusinessMonitoring | null>(null);
-  
+
   const editModal = useDisclosure();
   const deleteModal = useDisclosure();
 
@@ -456,12 +497,12 @@ export default function BusinessMonitoringPage() {
       setLoading(true);
       setError(null);
       const response = await fetch('/api/admin/businesses/monitoring');
-      
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.error || 'Failed to fetch business monitoring data');
       }
-      
+
       const data = await response.json();
       setBusinesses(data);
     } catch (error) {
@@ -476,30 +517,38 @@ export default function BusinessMonitoringPage() {
     const filtered = businesses.filter(business => {
       // Search filter
       const matchesSearch = business.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                           business.owner.email.toLowerCase().includes(searchQuery.toLowerCase());
-      
+        business.owner.email.toLowerCase().includes(searchQuery.toLowerCase());
+
       // Status filter
       let matchesStatus = true;
       if (statusFilter !== 'all') {
         switch (statusFilter) {
           case 'active_monitoring':
-            matchesStatus = business.monitoringStats.totalMonitored > 0;
+            matchesStatus = Boolean(business.subscription &&
+              ['ACTIVE', 'TRIAL'].includes(business.subscription.status) &&
+              business.monitoringStats.totalMonitored > 0);
             break;
           case 'inactive_monitoring':
-            matchesStatus = business.monitoringStats.totalMonitored === 0;
+            matchesStatus = Boolean(!business.subscription ||
+              !['ACTIVE', 'TRIAL'].includes(business.subscription?.status || '') ||
+              business.monitoringStats.totalMonitored === 0);
             break;
           case 'high_utilization':
-            matchesStatus = business.monitoringStats.planUtilization >= 80;
+            matchesStatus = Boolean(business.monitoringStats.planUtilization >= 80 &&
+              business.subscription &&
+              ['ACTIVE', 'TRIAL'].includes(business.subscription.status));
             break;
           case 'good_buybox_performance':
-            matchesStatus = business.monitoringStats.totalMonitored > 0 && 
-                          (business.monitoringStats.inBuyBox / business.monitoringStats.totalMonitored) >= 0.7;
+            matchesStatus = Boolean(business.subscription &&
+              ['ACTIVE', 'TRIAL'].includes(business.subscription.status) &&
+              business.monitoringStats.totalMonitored > 0 &&
+              (business.monitoringStats.inBuyBox / business.monitoringStats.totalMonitored) >= 0.7);
             break;
           default:
-            matchesStatus = business.subscription?.status === statusFilter;
+            matchesStatus = Boolean(business.subscription && business.subscription.status === statusFilter);
         }
       }
-      
+
       return matchesSearch && matchesStatus;
     });
 
@@ -530,7 +579,7 @@ export default function BusinessMonitoringPage() {
     { key: 'TRIAL', label: 'Trial Subscriptions' },
     { key: 'EXPIRED', label: 'Expired Subscriptions' },
     { key: 'active_monitoring', label: 'Actively Monitoring' },
-    { key: 'inactive_monitoring', label: 'Not Monitoring' },
+    { key: 'inactive_monitoring', label: 'Not Actively Monitoring' },
     { key: 'high_utilization', label: 'High Plan Utilization (80%+)' },
     { key: 'good_buybox_performance', label: 'Good Buy Box Performance (70%+)' }
   ];
@@ -559,7 +608,6 @@ export default function BusinessMonitoringPage() {
         throw new Error('Failed to update business');
       }
 
-      // Refresh the businesses list
       await fetchBusinessMonitoring();
     } catch (error) {
       console.error('Error updating business:', error);
@@ -577,7 +625,6 @@ export default function BusinessMonitoringPage() {
         throw new Error('Failed to delete business');
       }
 
-      // Refresh the businesses list
       await fetchBusinessMonitoring();
     } catch (error) {
       console.error('Error deleting business:', error);
@@ -593,26 +640,33 @@ export default function BusinessMonitoringPage() {
     { key: 'created_desc', label: 'Newest First' }
   ];
 
-  // Calculate summary stats
+  // Calculate summary stats - ONLY from businesses with active subscriptions
+  const activeBusinesses = businesses.filter(b =>
+    b.subscription && ['ACTIVE', 'TRIAL'].includes(b.subscription.status)
+  );
+
   const summaryStats = {
     totalBusinesses: businesses.length,
-    activelyMonitoring: businesses.filter(b => b.monitoringStats.totalMonitored > 0).length,
-    totalOffersMonitored: businesses.reduce((sum, b) => sum + b.monitoringStats.totalMonitored, 0),
-    totalInBuyBox: businesses.reduce((sum, b) => sum + b.monitoringStats.inBuyBox, 0),
+    activeSubscriptions: activeBusinesses.length,
+    activelyMonitoring: activeBusinesses.filter(b => b.monitoringStats.totalMonitored > 0).length,
+
+    // ONLY count offers from businesses with active subscriptions
+    totalOffersMonitored: activeBusinesses.reduce((sum, b) => sum + b.monitoringStats.totalMonitored, 0),
+    totalInBuyBox: activeBusinesses.reduce((sum, b) => sum + b.monitoringStats.inBuyBox, 0),
+
+    // Average buy box rate (only active subscriptions with monitoring)
+    averageBuyBoxRate: (() => {
+      const eligibleBusinesses = activeBusinesses.filter(b => b.monitoringStats.totalMonitored > 0);
+
+      if (eligibleBusinesses.length === 0) return 0;
+
+      const totalRate = eligibleBusinesses.reduce((sum, b) => {
+        return sum + (b.monitoringStats.inBuyBox / b.monitoringStats.totalMonitored) * 100;
+      }, 0);
+
+      return totalRate / eligibleBusinesses.length;
+    })()
   };
-
-    const activeBusinesses = businesses.filter(b => b.subscription?.status === 'ACTIVE' || b.subscription?.status === 'TRIAL');
-
-
-  const buyBoxSum = activeBusinesses.reduce((sum, b) => {
-    const { totalMonitored, inBuyBox } = b.monitoringStats;
-    const rate = totalMonitored > 0 ? (inBuyBox / totalMonitored) * 100 : 0;
-    return sum + rate;
-  }, 0);
-
-  const averageBuyBoxRate = activeBusinesses.length > 0
-    ? buyBoxSum / activeBusinesses.length
-    : 0;
 
   if (loading) {
     return (
@@ -642,8 +696,8 @@ export default function BusinessMonitoringPage() {
               <li>Temporary network problems</li>
             </ul>
           </div>
-          <Button 
-            color="primary" 
+          <Button
+            color="primary"
             className="mt-6"
             onClick={() => {
               setError(null);
@@ -704,7 +758,7 @@ export default function BusinessMonitoringPage() {
             <div>
               <p className="text-sm text-gray-600">Avg Buy Box Rate</p>
               <p className="text-xl font-semibold">
-                {averageBuyBoxRate.toFixed(1)}%
+                {summaryStats.averageBuyBoxRate.toFixed(1)}%
               </p>
             </div>
           </div>
@@ -749,8 +803,8 @@ export default function BusinessMonitoringPage() {
       {/* Business Cards */}
       <div className="space-y-4">
         {filteredBusinesses.map((business) => (
-          <BusinessCard 
-            key={business.id} 
+          <BusinessCard
+            key={business.id}
             business={business}
             onEdit={handleEdit}
             onDelete={handleDelete}
