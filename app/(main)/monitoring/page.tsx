@@ -25,7 +25,7 @@ import {
   DropdownMenu,
   DropdownItem
 } from "@nextui-org/react";
-import { Search, Building2, Eye, ShoppingCart, DollarSign, ChevronDown, AlertTriangle, MoreVertical, Edit, Trash2, Users, Activity } from 'lucide-react';
+import { Search, Building2, Eye, ShoppingCart, DollarSign, ChevronDown, AlertTriangle, MoreVertical, Edit, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface BusinessMonitoring {
