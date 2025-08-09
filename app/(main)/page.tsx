@@ -2,12 +2,11 @@
 
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
-import { type JSX, useEffect, useState } from "react"
+import { useEffect, useState } from "react"
 import { format } from "date-fns"
-import { Card, Chip } from "@nextui-org/react"
-import { Users, Eye, Building2, Activity, Database, Clock, AlertCircle } from "lucide-react"
 
-interface DashboardStats {
+type RecentChange = { business: { name: string }; status: string; updatedAt: string }
+type DashboardStats = {
   userCount: number
   totalBusinessCount: number
   activeSubscriptions: number
@@ -17,257 +16,111 @@ interface DashboardStats {
   activeBusinessCount: number
   trialBusinessCount: number
   inactiveBusinessCount: number
-  recentSubscriptionChanges: {
-    business: { name: string }
-    status: string
-    updatedAt: string
-  }[]
+  recentSubscriptionChanges: RecentChange[]
+}
+type SystemHealth = { status: string; database: string; timestamp: string }
+
+const statusBadge = (s: string) => {
+  const base = "inline-block text-[11px] px-2 py-0.5 rounded border"
+  if (s === "ACTIVE") return <span className={`${base} bg-green-50 text-green-700 border-green-200`}>ACTIVE</span>
+  if (s === "TRIAL") return <span className={`${base} bg-blue-50 text-blue-700 border-blue-200`}>TRIAL</span>
+  if (s === "PAST_DUE") return <span className={`${base} bg-amber-50 text-amber-700 border-amber-200`}>PAST_DUE</span>
+  if (s === "CANCELLED" || s === "EXPIRED")
+    return <span className={`${base} bg-red-50 text-red-700 border-red-200`}>{s}</span>
+  return <span className={`${base} bg-gray-50 text-gray-700 border-gray-200`}>{s}</span>
 }
 
-interface SystemHealth {
-  status: string
-  database: string
-  timestamp: string
-}
-
-const statusColorMap: Record<string, "primary" | "success" | "danger" | "warning" | "default"> = {
-  ACTIVE: "success",
-  TRIAL: "primary",
-  CANCELLED: "danger",
-  PAST_DUE: "warning",
-  EXPIRED: "warning",
-  PENDING: "default",
-}
-
-export default function Home() {
+export default function AdminDashboardMinimal() {
   const { data: session, status } = useSession()
   const router = useRouter()
+
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [health, setHealth] = useState<SystemHealth | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const [err, setErr] = useState<string | null>(null)
 
   useEffect(() => {
-    if (status === "unauthenticated") {
-      router.push("/login")
-    }
+    if (status === "unauthenticated") router.push("/login")
   }, [status, router])
 
   useEffect(() => {
-    const fetchDashboardData = async () => {
+    const load = async () => {
       try {
-        const [statsResponse, healthResponse] = await Promise.all([fetch("/api/dashboard/stats"), fetch("/api/health")])
-
-        if (!statsResponse.ok || !healthResponse.ok) {
-          throw new Error("Failed to fetch dashboard data")
-        }
-
-        const statsData = await statsResponse.json()
-        const healthData = await healthResponse.json()
-
-        setStats(statsData.stats)
-        setHealth(healthData)
-      } catch (err) {
-        setError("Failed to load dashboard data")
-        console.error("Dashboard fetch error:", err)
+        const [s, h] = await Promise.all([fetch("/api/dashboard/stats"), fetch("/api/health")])
+        if (!s.ok || !h.ok) throw new Error("bad response")
+        const sj = await s.json()
+        const hj = await h.json()
+        setStats(sj.stats)
+        setHealth(hj)
+      } catch (e) {
+        setErr("Failed to load")
       }
     }
-
-    if (session) {
-      fetchDashboardData()
-    }
+    if (session) load()
   }, [session])
 
   if (status === "loading") {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-500 border-t-transparent mx-auto mb-6"></div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Loading Dashboard</h3>
-          <p className="text-gray-600">Please wait while we prepare your admin panel...</p>
-        </div>
-      </div>
+      <div className="min-h-screen grid place-items-center text-sm text-gray-600">Loading…</div>
     )
   }
-
-  if (!session) {
-    return null
-  }
+  if (!session) return null
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      <main className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-4 mb-6">
-            <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center shadow-lg">
-              <Activity className="h-8 w-8 text-white" />
-            </div>
-            <div>
-              <h1 className="text-3xl sm:text-4xl font-bold text-gray-900">Admin Dashboard</h1>
-              <p className="text-gray-600 text-lg mt-1">Welcome back, {session.user?.name ?? "Admin"}</p>
-            </div>
+    <div className="min-h-screen bg-white">
+      <main className="mx-auto max-w-5xl p-4 sm:p-6">
+        <header className="mb-6">
+          <h1 className="text-xl font-semibold">Admin</h1>
+          <div className="mt-1 text-xs text-gray-500">
+            {health?.timestamp ? format(new Date(health.timestamp), "MMM d, HH:mm") : "—"} · DB:{" "}
+            <span className={health?.database === "connected" ? "text-green-600" : "text-red-600"}>
+              {health?.database ?? "unknown"}
+            </span>
           </div>
-        </div>
+        </header>
 
-        {/* Key Metrics */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <MetricCard
-            icon={<Users className="h-6 w-6 text-blue-600" />}
-            title="Total Users"
-            value={stats?.userCount}
-            bgColor="bg-gradient-to-br from-blue-50 to-blue-100"
-            iconBg="bg-blue-100"
-          />
-          <MetricCard
-            icon={<Building2 className="h-6 w-6 text-green-600" />}
-            title="Active Subscriptions"
-            value={stats?.activeSubscriptions}
-            subtitle={`${stats?.totalBusinessCount} total businesses`}
-            bgColor="bg-gradient-to-br from-green-50 to-green-100"
-            iconBg="bg-green-100"
-          />
-          <MetricCard
-            icon={<Activity className="h-6 w-6 text-purple-600" />}
-            title="Actively Monitoring"
-            value={stats?.activelyMonitoringBusinessCount}
-            bgColor="bg-gradient-to-br from-purple-50 to-purple-100"
-            iconBg="bg-purple-100"
-          />
-          <MetricCard
-            icon={<Eye className="h-6 w-6 text-amber-600" />}
-            title="Monitored Offers"
-            value={stats?.actuallyMonitoredOfferCount}
-            subtitle={`${stats?.totalOfferCount} total offers`}
-            bgColor="bg-gradient-to-br from-amber-50 to-amber-100"
-            iconBg="bg-amber-100"
-          />
-        </div>
+        {err && <div className="mb-4 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{err}</div>}
 
-        {/* Dashboard Sections */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* System Health */}
-          <Card className="p-6 shadow-sm border-0 bg-white/80 backdrop-blur-sm">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                <Database className="w-5 h-5 text-green-600" />
-              </div>
-              <h2 className="text-lg font-semibold text-gray-900">System Health</h2>
-            </div>
-            <SystemStatus health={health} />
-          </Card>
+        {/* Metrics */}
+        <section className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+          <Stat label="Users" value={stats?.userCount} />
+          <Stat label="Businesses" value={stats?.totalBusinessCount} />
+          <Stat label="Active Subs" value={stats?.activeSubscriptions} />
+          <Stat label="Actively Monitoring" value={stats?.activelyMonitoringBusinessCount} />
+          <Stat label="Offers (total)" value={stats?.totalOfferCount} />
+          <Stat label="Offers (monitored)" value={stats?.actuallyMonitoredOfferCount} />
+          <Stat label="Trials" value={stats?.trialBusinessCount} />
+          <Stat label="Inactive Subs" value={stats?.inactiveBusinessCount} />
+        </section>
 
-          {/* Recent Activity */}
-          <Card className="p-6 shadow-sm border-0 bg-white/80 backdrop-blur-sm">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                <Clock className="w-5 h-5 text-purple-600" />
-              </div>
-              <h2 className="text-lg font-semibold text-gray-900">Recent Activity</h2>
-            </div>
-            <RecentActivity recentChanges={stats?.recentSubscriptionChanges} />
-          </Card>
-        </div>
-
-        {/* Error Display */}
-        {error && (
-          <Card className="mt-6 p-6 shadow-sm border-0 bg-red-50 border-red-200">
-            <div className="flex items-center gap-3">
-              <AlertCircle className="w-5 h-5 text-red-600" />
-              <p className="text-red-800 font-medium">{error}</p>
-            </div>
-          </Card>
-        )}
+        {/* Recent changes */}
+        <section>
+          <h2 className="text-sm font-medium mb-2">Recent subscription changes</h2>
+          {(!stats?.recentSubscriptionChanges || stats.recentSubscriptionChanges.length === 0) ? (
+            <div className="text-xs text-gray-500 border rounded px-3 py-2">No recent activity</div>
+          ) : (
+            <ul className="divide-y rounded border">
+              {stats.recentSubscriptionChanges.slice(0, 5).map((r, i) => (
+                <li key={i} className="flex items-center justify-between px-3 py-2 text-sm">
+                  <div className="min-w-0">
+                    <div className="truncate">{r.business.name}</div>
+                    <div className="text-xs text-gray-500">{format(new Date(r.updatedAt), "MMM d, HH:mm")}</div>
+                  </div>
+                  <div className="ml-3">{statusBadge(r.status)}</div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
       </main>
     </div>
   )
 }
 
-// Component for system status
-function SystemStatus({ health }: { health: SystemHealth | null }) {
-  const isConnected = health?.database === "connected"
-
+function Stat({ label, value }: { label: string; value?: number }) {
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-        <div className="flex items-center gap-3">
-          <div className={`w-3 h-3 rounded-full ${isConnected ? "bg-green-500" : "bg-red-500"}`}></div>
-          <span className="text-sm font-medium text-gray-700">Database Connection</span>
-        </div>
-        <Chip color={isConnected ? "success" : "danger"} variant="flat" size="sm" className="font-medium">
-          {isConnected ? "Connected" : "Disconnected"}
-        </Chip>
-      </div>
-
-      <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-        <div className="flex items-center gap-3">
-          <Clock className="w-4 h-4 text-gray-500" />
-          <span className="text-sm font-medium text-gray-700">Last Update</span>
-        </div>
-        <span className="text-sm text-gray-600">
-          {health?.timestamp ? format(new Date(health.timestamp), "MMM d, h:mm a") : "N/A"}
-        </span>
-      </div>
+    <div className="rounded border px-3 py-3">
+      <div className="text-[11px] uppercase tracking-wide text-gray-500 mb-1">{label}</div>
+      <div className="text-lg font-semibold">{value !== undefined ? value.toLocaleString() : "—"}</div>
     </div>
-  )
-}
-
-// Component for recent activity
-function RecentActivity({
-  recentChanges,
-}: { recentChanges?: { business: { name: string }; status: string; updatedAt: string }[] }) {
-  if (!recentChanges || recentChanges.length === 0) {
-    return (
-      <div className="text-center py-8">
-        <Clock className="w-8 h-8 text-gray-400 mx-auto mb-3" />
-        <p className="text-gray-500 text-sm">No recent activity</p>
-      </div>
-    )
-  }
-
-  return (
-    <div className="space-y-3">
-      {recentChanges.slice(0, 5).map((change, index) => (
-        <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-gray-900 truncate">{change.business.name}</p>
-            <p className="text-xs text-gray-500">{format(new Date(change.updatedAt), "MMM d, h:mm a")}</p>
-          </div>
-          <Chip color={statusColorMap[change.status]} variant="flat" size="sm" className="ml-3 font-medium">
-            {change.status}
-          </Chip>
-        </div>
-      ))}
-    </div>
-  )
-}
-
-// Utility components
-function MetricCard({
-  icon,
-  title,
-  value,
-  subtitle,
-  bgColor = "bg-gradient-to-br from-gray-50 to-gray-100",
-  iconBg = "bg-gray-100",
-}: Readonly<{
-  icon: JSX.Element
-  title: string
-  value?: number
-  subtitle?: string
-  bgColor?: string
-  iconBg?: string
-}>) {
-  return (
-    <Card className={`p-6 shadow-sm border-0 ${bgColor} backdrop-blur-sm`}>
-      <div className="flex items-center justify-between mb-4">
-        <div className={`w-12 h-12 ${iconBg} rounded-xl flex items-center justify-center`}>{icon}</div>
-        <span className="text-xs font-medium text-gray-600 uppercase tracking-wide">{title.split(" ")[0]}</span>
-      </div>
-      <p className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">
-        {value !== undefined ? value.toLocaleString() : "Loading..."}
-      </p>
-      <p className="text-sm text-gray-600">{title}</p>
-      {subtitle && <p className="text-xs text-gray-500 mt-2">{subtitle}</p>}
-    </Card>
   )
 }

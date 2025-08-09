@@ -40,8 +40,8 @@ import {
   Send,
   CreditCard,
 } from "lucide-react"
-import { format, addMonths } from "date-fns"
-import { Plan, SubscriptionStatus } from '@prisma/client'
+import { format, addMonths, formatDistanceToNow } from "date-fns"
+import { Plan, SubscriptionStatus } from "@prisma/client"
 
 interface BusinessMonitoring {
   id: string
@@ -53,7 +53,16 @@ interface BusinessMonitoring {
   subscription: {
     id: string
     status: string
+    startDate: string
+    endDate: string | null
+    cancelledAt: string | null
+    createdAt?: string
+    updatedAt?: string
+    lastPaymentDate: string | null
     nextBillingDate: string | null
+    trialEndsAt: string | null
+    paystackCustomerCode?: string
+    paystackSubscriptionCode?: string
     plan: {
       id: string
       name: string
@@ -75,7 +84,10 @@ interface BusinessMonitoring {
   createdAt: string
 }
 
-const subscriptionStatusColors: Record<string, "primary" | "success" | "danger" | "warning" | "default"> = {
+const subscriptionStatusColors: Record<
+  string,
+  "primary" | "success" | "danger" | "warning" | "default"
+> = {
   TRIAL: "primary",
   ACTIVE: "success",
   CANCELLED: "danger",
@@ -84,15 +96,20 @@ const subscriptionStatusColors: Record<string, "primary" | "success" | "danger" 
   PENDING: "default",
 }
 
+// date helpers
+const fmt = (d?: string | null) => (d ? format(new Date(d), "MMM d, yyyy") : "—")
+const rel = (d?: string | null) =>
+  d ? formatDistanceToNow(new Date(d), { addSuffix: true }) : ""
+
 interface EditBusinessModalProps {
   isOpen: boolean
   onClose: () => void
   business: BusinessMonitoring | null
   onUpdate: (businessId: string, data: { name: string; ownerEmail: string }) => Promise<void>
-  onUpdateSubscription: (businessId: string, data: { 
-    status: SubscriptionStatus; 
-    nextBillingDate: string; 
-    planId: string 
+  onUpdateSubscription: (businessId: string, data: {
+    status: SubscriptionStatus;
+    nextBillingDate: string;
+    planId: string
   }) => Promise<void>
 }
 
@@ -104,8 +121,8 @@ const EditBusinessModal = ({ isOpen, onClose, business, onUpdate, onUpdateSubscr
 
   // Subscription Edit State
   const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus>(SubscriptionStatus.ACTIVE)
-  const [nextBillingDate, setNextBillingDate] = useState<string>('')
-  const [selectedPlanId, setSelectedPlanId] = useState<string>('')
+  const [nextBillingDate, setNextBillingDate] = useState<string>("")
+  const [selectedPlanId, setSelectedPlanId] = useState<string>("")
   const [plans, setPlans] = useState<Plan[]>([])
   const [isSubscriptionLoading, setIsSubscriptionLoading] = useState(false)
 
@@ -117,14 +134,15 @@ const EditBusinessModal = ({ isOpen, onClose, business, onUpdate, onUpdateSubscr
       // Initialize business data
       setName(business.name)
       setOwnerEmail(business.owner.email)
-      
+
       // Initialize subscription data
       if (business.subscription) {
         setSubscriptionStatus(business.subscription.status as SubscriptionStatus)
         setSelectedPlanId(business.subscription.plan.id)
-        setNextBillingDate(business.subscription.nextBillingDate ? 
-          new Date(business.subscription.nextBillingDate).toISOString().split('T')[0] : 
-          new Date().toISOString().split('T')[0]
+        setNextBillingDate(
+          business.subscription.nextBillingDate
+            ? new Date(business.subscription.nextBillingDate).toISOString().split("T")[0]
+            : new Date().toISOString().split("T")[0]
         )
       }
     }
@@ -138,18 +156,18 @@ const EditBusinessModal = ({ isOpen, onClose, business, onUpdate, onUpdateSubscr
 
   const fetchPlans = async () => {
     try {
-      const response = await fetch('/api/plans')
-      if (!response.ok) throw new Error('Failed to fetch plans')
+      const response = await fetch("/api/plans")
+      if (!response.ok) throw new Error("Failed to fetch plans")
       const data = await response.json()
       setPlans(data)
     } catch (error) {
-      console.error('Error fetching plans:', error)
+      console.error("Error fetching plans:", error)
     }
   }
 
   const handleBusinessUpdate = async () => {
     if (!business) return
-    
+
     setIsBusinessLoading(true)
     try {
       await onUpdate(business.id, { name, ownerEmail })
@@ -162,13 +180,13 @@ const EditBusinessModal = ({ isOpen, onClose, business, onUpdate, onUpdateSubscr
 
   const handleSubscriptionUpdate = async () => {
     if (!business || !business.subscription) return
-    
+
     setIsSubscriptionLoading(true)
     try {
       await onUpdateSubscription(business.id, {
         status: subscriptionStatus,
         nextBillingDate,
-        planId: selectedPlanId
+        planId: selectedPlanId,
       })
     } catch (error) {
       console.error("Error updating subscription:", error)
@@ -178,10 +196,10 @@ const EditBusinessModal = ({ isOpen, onClose, business, onUpdate, onUpdateSubscr
   }
 
   const handleSetNextMonth = () => {
-    setNextBillingDate(prev => {
+    setNextBillingDate((prev) => {
       const currentDate = prev ? new Date(prev) : new Date()
       const nextMonth = addMonths(currentDate, 1)
-      return nextMonth.toISOString().split('T')[0]
+      return nextMonth.toISOString().split("T")[0]
     })
   }
 
@@ -198,18 +216,16 @@ const EditBusinessModal = ({ isOpen, onClose, business, onUpdate, onUpdateSubscr
       <ModalContent>
         <ModalHeader className="flex flex-col gap-1">
           <span className="text-xl font-semibold">Edit {business?.name}</span>
-          <p className="text-sm text-default-500 font-normal">
-            Manage business details and subscription settings
-          </p>
+          <p className="text-sm text-default-500 font-normal">Manage business details and subscription settings</p>
         </ModalHeader>
         <ModalBody>
-          <Tabs 
-            selectedKey={selectedTab} 
+          <Tabs
+            selectedKey={selectedTab}
             onSelectionChange={(key) => setSelectedTab(key.toString())}
             className="w-full"
           >
-            <Tab 
-              key="business" 
+            <Tab
+              key="business"
               title={
                 <div className="flex items-center gap-2">
                   <Building2 className="w-4 h-4" />
@@ -226,7 +242,7 @@ const EditBusinessModal = ({ isOpen, onClose, business, onUpdate, onUpdateSubscr
                     placeholder="Enter business name"
                     variant="bordered"
                   />
-                  
+
                   <Input
                     label="Owner Email"
                     type="email"
@@ -235,7 +251,7 @@ const EditBusinessModal = ({ isOpen, onClose, business, onUpdate, onUpdateSubscr
                     placeholder="Enter owner email"
                     variant="bordered"
                   />
-                  
+
                   <div className="p-4 bg-default-50 border border-default-200 rounded-xl">
                     <p className="text-sm text-default-700">
                       <strong>Note:</strong> Changing the owner email will transfer the business to that user account.
@@ -255,8 +271,8 @@ const EditBusinessModal = ({ isOpen, onClose, business, onUpdate, onUpdateSubscr
               </Card>
             </Tab>
 
-            <Tab 
-              key="subscription" 
+            <Tab
+              key="subscription"
               title={
                 <div className="flex items-center gap-2">
                   <CreditCard className="w-4 h-4" />
@@ -276,7 +292,7 @@ const EditBusinessModal = ({ isOpen, onClose, business, onUpdate, onUpdateSubscr
                   ) : (
                     <>
                       <Select
-                        key={`plan-select-${business?.subscription?.id || 'no-sub'}`}
+                        key={`plan-select-${business?.subscription?.id || "no-sub"}`}
                         label="Subscription Plan"
                         selectedKeys={selectedPlanId ? [selectedPlanId] : []}
                         onChange={(e) => setSelectedPlanId(e.target.value)}
@@ -284,7 +300,7 @@ const EditBusinessModal = ({ isOpen, onClose, business, onUpdate, onUpdateSubscr
                       >
                         {plans.map((plan) => (
                           <SelectItem key={plan.id} value={plan.id}>
-                            {plan.name} ({plan.maxOffers} offers - ${plan.price})
+                            {plan.name} ({plan.maxOffers} offers - R{plan.price})
                           </SelectItem>
                         ))}
                       </Select>
@@ -298,7 +314,7 @@ const EditBusinessModal = ({ isOpen, onClose, business, onUpdate, onUpdateSubscr
                       )}
 
                       <Select
-                        key={`status-select-${business?.subscription?.id || 'no-sub'}`}
+                        key={`status-select-${business?.subscription?.id || "no-sub"}`}
                         label="Subscription Status"
                         selectedKeys={[subscriptionStatus]}
                         onChange={(e) => setSubscriptionStatus(e.target.value as SubscriptionStatus)}
@@ -320,12 +336,7 @@ const EditBusinessModal = ({ isOpen, onClose, business, onUpdate, onUpdateSubscr
                             value={nextBillingDate}
                             onChange={(e) => setNextBillingDate(e.target.value)}
                           />
-                          <Button
-                            size="lg"
-                            variant="bordered"
-                            onClick={handleSetNextMonth}
-                            startContent={<Calendar className="w-4 h-4" />}
-                          >
+                          <Button size="lg" variant="bordered" onClick={handleSetNextMonth} startContent={<Calendar className="w-4 h-4" />}>
                             Next Month
                           </Button>
                         </div>
@@ -348,18 +359,13 @@ const EditBusinessModal = ({ isOpen, onClose, business, onUpdate, onUpdateSubscr
                             <p className="font-medium">{business.subscription.plan.maxOffers}</p>
                           </div>
                           <div>
-                            <p className="text-default-600">Utilization</p>
+                            <p className="text-default-600">Utilisation</p>
                             <p className="font-medium">{business.monitoringStats.planUtilization.toFixed(1)}%</p>
                           </div>
                         </div>
                       </div>
 
-                      <Button
-                        color="primary"
-                        onPress={handleSubscriptionUpdate}
-                        isLoading={isSubscriptionLoading}
-                        className="w-full"
-                      >
+                      <Button color="primary" onPress={handleSubscriptionUpdate} isLoading={isSubscriptionLoading} className="w-full">
                         Update Subscription
                       </Button>
                     </>
@@ -468,7 +474,7 @@ const EmailBusinessModal = ({ isOpen, onClose, business, onSendEmail }: EmailBus
 
   // Email templates
   const templates = {
-    "start_monitoring": {
+    start_monitoring: {
       subject: "Start Monitoring Your Offers with SalesPath",
       body: `<p>Hi {{name}},</p>
 
@@ -499,9 +505,9 @@ const EmailBusinessModal = ({ isOpen, onClose, business, onSendEmail }: EmailBus
 
 <p>Once you complete these steps, our system will automatically track price changes and help optimize your offers for better performance.</p>
 
-<p>Need help getting started? Our support team is here to assist you!</p>`
+<p>Need help getting started? Our support team is here to assist you!</p>`,
     },
-    "subscription_reminder": {
+    subscription_reminder: {
       subject: "Your SalesPath Subscription Status",
       body: `<p>Hi {{name}},</p>
 
@@ -509,28 +515,28 @@ const EmailBusinessModal = ({ isOpen, onClose, business, onSendEmail }: EmailBus
 
 <p><strong>Current Status:</strong> {{status}}</p>
 
-<p>If you have any questions or need assistance, please don't hesitate to reach out to our support team.</p>`
+<p>If you have any questions or need assistance, please don't hesitate to reach out to our support team.</p>`,
     },
-    "plan_upgrade": {
+    plan_upgrade: {
       subject: "Upgrade Your SalesPath Plan",
       body: `<p>Hi {{name}},</p>
 
 <p>We noticed that <strong>{{businessName}}</strong> is approaching its plan limits.</p>
 
-<p>You're currently using a high percentage of your plan's capacity. Consider upgrading to continue monitoring more offers without interruption.</p>`
+<p>You're currently using a high percentage of your plan's capacity. Consider upgrading to continue monitoring more offers without interruption.</p>`,
     },
-    "inactive_monitoring": {
+    inactive_monitoring: {
       subject: "Reactivate Your SalesPath Monitoring",
       body: `<p>Hi {{name}},</p>
 
 <p>We noticed that monitoring for <strong>{{businessName}}</strong> has been inactive.</p>
 
-<p>Your subscription status is currently <strong>{{status}}</strong>. To resume price monitoring and optimization, please update your subscription.</p>`
+<p>Your subscription status is currently <strong>{{status}}</strong>. To resume price monitoring and optimisation, please update your subscription.</p>`,
     },
-    "custom": {
+    custom: {
       subject: "",
-      body: ""
-    }
+      body: "",
+    },
   }
 
   useEffect(() => {
@@ -560,7 +566,7 @@ const EmailBusinessModal = ({ isOpen, onClose, business, onSendEmail }: EmailBus
 
   const handleSubmit = async () => {
     if (!business || !subject.trim() || !emailBody.trim()) return
-    
+
     setIsLoading(true)
     try {
       await onSendEmail(business.id, subject, emailBody)
@@ -593,9 +599,7 @@ const EmailBusinessModal = ({ isOpen, onClose, business, onSendEmail }: EmailBus
             <Mail className="w-5 h-5 text-primary" />
             <span className="text-xl font-semibold">Send Email to {business?.name}</span>
           </div>
-          <p className="text-sm text-default-500 font-normal">
-            Email will be sent to: {business?.owner.email}
-          </p>
+          <p className="text-sm text-default-500 font-normal">Email will be sent to: {business?.owner.email}</p>
         </ModalHeader>
         <ModalBody>
           <div className="space-y-6">
@@ -607,14 +611,12 @@ const EmailBusinessModal = ({ isOpen, onClose, business, onSendEmail }: EmailBus
                   </div>
                   <span className="font-medium text-success-800">Email sent successfully!</span>
                 </div>
-                <p className="text-sm text-success-700 mt-1">
-                  The email has been delivered to {business?.owner.email}
-                </p>
+                <p className="text-sm text-success-700 mt-1">The email has been delivered to {business?.owner.email}</p>
               </div>
             )}
 
             <Select
-              key={`email-template-select-${business?.id || 'no-business'}`}
+              key={`email-template-select-${business?.id || "no-business"}`}
               label="Email Template"
               placeholder="Choose a template or create custom email"
               onChange={(e) => handleTemplateChange(e.target.value)}
@@ -657,9 +659,15 @@ const EmailBusinessModal = ({ isOpen, onClose, business, onSendEmail }: EmailBus
             <div className="p-4 bg-default-50 border border-default-200 rounded-xl">
               <p className="text-sm text-default-700 font-medium mb-2">Available Variables:</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-default-600">
-                <div>• <code className="bg-default-100 px-1 rounded">{"{{name}}"}</code> - Owner&apos;s name</div>
-                <div>• <code className="bg-default-100 px-1 rounded">{"{{businessName}}"}</code> - Business name</div>
-                <div>• <code className="bg-default-100 px-1 rounded">{"{{status}}"}</code> - Subscription status</div>
+                <div>
+                  • <code className="bg-default-100 px-1 rounded">{"{{name}}"}</code> - Owner&apos;s name
+                </div>
+                <div>
+                  • <code className="bg-default-100 px-1 rounded">{"{{businessName}}"}</code> - Business name
+                </div>
+                <div>
+                  • <code className="bg-default-100 px-1 rounded">{"{{status}}"}</code> - Subscription status
+                </div>
               </div>
             </div>
           </div>
@@ -699,18 +707,22 @@ const BusinessCard = ({
   const isActivelyMonitored = subscription && ["ACTIVE", "TRIAL"].includes(subscription.status)
   const buyBoxRate = stats.totalMonitored > 0 ? (stats.inBuyBox / stats.totalMonitored) * 100 : 0
 
+  // billing fields
+  const isTrial = subscription?.status === "TRIAL"
+  const trialEnds = subscription?.trialEndsAt || null
+  const nextBill = subscription?.nextBillingDate || null
+  const lastPay = subscription?.lastPaymentDate || null
+  const endsAt = subscription?.endDate || null
+  const isCancelled = subscription?.status === "CANCELLED"
+  const isPastDue = subscription?.status === "PAST_DUE"
+
   return (
     <Card className="p-6 shadow-sm border-0 bg-white/80 backdrop-blur-sm hover:shadow-md transition-shadow">
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-3 mb-2">
             <h3 className="text-lg font-semibold text-gray-900 truncate">{business.name}</h3>
-            <Chip
-              color={subscriptionStatusColors[subscription?.status || "default"]}
-              variant="flat"
-              size="sm"
-              className="font-medium"
-            >
+            <Chip color={subscriptionStatusColors[subscription?.status || "default"]} variant="flat" size="sm" className="font-medium">
               {subscription?.status || "NO SUB"}
             </Chip>
           </div>
@@ -727,18 +739,10 @@ const BusinessCard = ({
             </Button>
           </DropdownTrigger>
           <DropdownMenu>
-            <DropdownItem 
-              key="edit" 
-              startContent={<Edit className="w-4 h-4" />} 
-              onClick={() => onEdit(business)}
-            >
+            <DropdownItem key="edit" startContent={<Edit className="w-4 h-4" />} onClick={() => onEdit(business)}>
               Edit Business & Subscription
             </DropdownItem>
-            <DropdownItem 
-              key="email" 
-              startContent={<Mail className="w-4 h-4" />} 
-              onClick={() => onEmail(business)}
-            >
+            <DropdownItem key="email" startContent={<Mail className="w-4 h-4" />} onClick={() => onEmail(business)}>
               Send Email
             </DropdownItem>
             <DropdownItem
@@ -789,7 +793,7 @@ const BusinessCard = ({
         </div>
       </div>
 
-      {/* Additional Info */}
+      {/* Plan / Created or Next Bill */}
       <div className="flex items-center justify-between text-sm text-gray-600 pt-4 border-t border-gray-100">
         <div className="flex items-center gap-1">
           <Building2 className="w-4 h-4" />
@@ -797,7 +801,11 @@ const BusinessCard = ({
         </div>
         <div className="flex items-center gap-1">
           <Calendar className="w-4 h-4" />
-          <span>{format(new Date(business.createdAt), "MMM d, yyyy")}</span>
+          <span>
+            {subscription?.nextBillingDate
+              ? `Next bill: ${fmt(subscription.nextBillingDate)}`
+              : `Created: ${format(new Date(business.createdAt), "MMM d, yyyy")}`}
+          </span>
         </div>
       </div>
 
@@ -816,6 +824,68 @@ const BusinessCard = ({
           <div className="flex items-center gap-2">
             <AlertTriangle className="w-4 h-4 text-red-600" />
             <span className="text-sm text-red-800">Plan limit reached ({stats.planUtilization.toFixed(0)}%)</span>
+          </div>
+        </div>
+      )}
+
+      {/* Billing (rich) */}
+      {subscription && (
+        <div className="mt-4 p-3 bg-slate-50 border border-slate-200 rounded-xl">
+          <h4 className="text-sm font-medium text-slate-800 mb-2">Billing</h4>
+          <div className="grid grid-cols-2 gap-3 text-xs text-slate-700">
+            <div>
+              <p className="text-slate-500">Plan price</p>
+              <p className="font-medium">R{subscription.plan.price.toFixed(2)}/mo</p>
+            </div>
+
+            <div>
+              <p className="text-slate-500">Next bill</p>
+              <p className="font-medium">
+                {fmt(nextBill)} {rel(nextBill) && <span className="text-slate-500">({rel(nextBill)})</span>}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-slate-500">Last payment</p>
+              <p className="font-medium">{fmt(lastPay)}</p>
+            </div>
+
+            {trialEnds  && (
+              <div>
+                <p className="text-slate-500">Trial ends</p>
+                <p className="font-medium">
+                  {fmt(trialEnds)} {rel(trialEnds) && <span className="text-slate-500">({rel(trialEnds)})</span>}
+                </p>
+              </div>
+            )}
+
+            {isCancelled && (
+              <div>
+                <p className="text-slate-500">Access ends</p>
+                <p className="font-medium">{fmt(endsAt)}</p>
+              </div>
+            )}
+          </div>
+
+          {isPastDue && (
+            <div className="mt-3 p-2 bg-amber-50 border border-amber-200 rounded-lg">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-amber-600" />
+                <span className="text-sm text-amber-800">Payment past due — please update billing.</span>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Trial callout (extra prominence on cards) */}
+      {isTrial && trialEnds && (
+        <div className="mt-3 p-2 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-blue-600" />
+            <span className="text-sm text-blue-800">
+              Trial ends {fmt(trialEnds)} {rel(trialEnds) && `(${rel(trialEnds)})`}
+            </span>
           </div>
         </div>
       )}
@@ -876,26 +946,35 @@ export default function BusinessMonitoringPage() {
           case "active_monitoring":
             matchesStatus = Boolean(
               business.subscription &&
-                ["ACTIVE", "TRIAL"].includes(business.subscription.status) &&
-                business.monitoringStats.totalMonitored > 0,
+              ["ACTIVE", "TRIAL"].includes(business.subscription.status) &&
+              business.monitoringStats.totalMonitored > 0
+            )
+            break
+          case "pending":
+            matchesStatus = Boolean(
+              business.subscription &&
+              ["PENDING"].includes(business.subscription.status) &&
+              business.monitoringStats.totalMonitored > 0
             )
             break
           case "inactive_monitoring":
             matchesStatus = Boolean(
               !business.subscription ||
-                !["ACTIVE", "TRIAL"].includes(business.subscription?.status || "") ||
-                business.monitoringStats.totalMonitored === 0,
+              !["ACTIVE", "TRIAL"].includes(business.subscription?.status || "") ||
+              business.monitoringStats.totalMonitored === 0
             )
             break
           case "high_utilization":
             matchesStatus = Boolean(
               business.monitoringStats.planUtilization >= 80 &&
-                business.subscription &&
-                ["ACTIVE", "TRIAL"].includes(business.subscription.status),
+              business.subscription &&
+              ["ACTIVE", "TRIAL"].includes(business.subscription.status)
             )
             break
           default:
-            matchesStatus = Boolean(business.subscription && business.subscription.status === statusFilter)
+            matchesStatus = Boolean(
+              business.subscription && business.subscription.status === statusFilter
+            )
         }
       }
       return matchesSearch && matchesStatus
@@ -924,6 +1003,7 @@ export default function BusinessMonitoringPage() {
     { key: "TRIAL", label: "Trial Subscriptions" },
     { key: "ACTIVE", label: "Active Subscriptions" },
     { key: "EXPIRED", label: "Expired Subscriptions" },
+    { key: "pending", label: "Pending Subscriptions" },
     { key: "active_monitoring", label: "Actively Monitoring" },
     { key: "inactive_monitoring", label: "Not Monitoring" },
     { key: "high_utilization", label: "High Usage (80%+)" },
@@ -959,13 +1039,13 @@ export default function BusinessMonitoringPage() {
     }
   }
 
-  const handleUpdateSubscription = async (businessId: string, data: { 
-    status: SubscriptionStatus; 
-    nextBillingDate: string; 
-    planId: string 
+  const handleUpdateSubscription = async (businessId: string, data: {
+    status: SubscriptionStatus;
+    nextBillingDate: string;
+    planId: string
   }) => {
     try {
-      const business = businesses.find(b => b.id === businessId)
+      const business = businesses.find((b) => b.id === businessId)
       if (!business?.subscription?.id) {
         throw new Error("No subscription found for this business")
       }
@@ -976,7 +1056,7 @@ export default function BusinessMonitoringPage() {
         body: JSON.stringify({
           status: data.status,
           nextBillingDate: data.nextBillingDate,
-          planId: data.planId
+          planId: data.planId,
         }),
       })
       if (!response.ok) throw new Error("Failed to update subscription")
@@ -1000,9 +1080,9 @@ export default function BusinessMonitoringPage() {
 
   const handleSendEmail = async (businessId: string, subject: string, body: string) => {
     try {
-      const response = await fetch('/api/email/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/email/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           type: "businesses",
           recipientIds: [businessId],
@@ -1012,12 +1092,12 @@ export default function BusinessMonitoringPage() {
       })
 
       if (!response.ok) {
-        throw new Error('Failed to send email')
+        throw new Error("Failed to send email")
       }
 
-      console.log('Email sent successfully')
+      console.log("Email sent successfully")
     } catch (error) {
-      console.error('Error sending email:', error)
+      console.error("Error sending email:", error)
       throw error
     }
   }
@@ -1030,7 +1110,7 @@ export default function BusinessMonitoringPage() {
   ]
 
   const activeBusinesses = businesses.filter(
-    (b) => b.subscription && ["ACTIVE", "TRIAL"].includes(b.subscription.status),
+    (b) => b.subscription && ["ACTIVE", "TRIAL"].includes(b.subscription.status)
   )
 
   const summaryStats = {
@@ -1170,7 +1250,16 @@ export default function BusinessMonitoringPage() {
                 startContent={<Filter className="w-4 h-4 text-gray-400" />}
                 classNames={{ trigger: "bg-white" }}
               >
-                {getFilterOptions().map((option) => (
+                {[
+                  { key: "all", label: "All Businesses" },
+                  { key: "TRIAL", label: "Trial Subscriptions" },
+                  { key: "ACTIVE", label: "Active Subscriptions" },
+                  { key: "EXPIRED", label: "Expired Subscriptions" },
+                  { key: "pending", label: "Pending Subscriptions" },
+                  { key: "active_monitoring", label: "Actively Monitoring" },
+                  { key: "inactive_monitoring", label: "Not Monitoring" },
+                  { key: "high_utilization", label: "High Usage (80%+)" },
+                ].map((option) => (
                   <SelectItem key={option.key} value={option.key}>
                     {option.label}
                   </SelectItem>
@@ -1185,7 +1274,12 @@ export default function BusinessMonitoringPage() {
                 variant="bordered"
                 classNames={{ trigger: "bg-white" }}
               >
-                {getSortOptions().map((option) => (
+                {[
+                  { key: "name", label: "Business Name" },
+                  { key: "monitored_desc", label: "Most Monitored" },
+                  { key: "buybox_desc", label: "Most in Buy Box" },
+                  { key: "created_desc", label: "Newest First" },
+                ].map((option) => (
                   <SelectItem key={option.key} value={option.key}>
                     {option.label}
                   </SelectItem>
@@ -1198,13 +1292,7 @@ export default function BusinessMonitoringPage() {
         {/* Business Cards */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {filteredBusinesses.map((business) => (
-            <BusinessCard 
-              key={business.id} 
-              business={business} 
-              onEdit={handleEdit} 
-              onDelete={handleDelete}
-              onEmail={handleEmail}
-            />
+            <BusinessCard key={business.id} business={business} onEdit={handleEdit} onDelete={handleDelete} onEmail={handleEmail} />
           ))}
         </div>
 
